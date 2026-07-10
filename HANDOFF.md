@@ -10,7 +10,7 @@
 ## 紅線（改一處要同步 CLAUDE.md / AGENTS.md / 本檔）
 
 1. **不要把 three.js 升到 r150+**。r150 起官方移除了 UMD 版 `three.min.js`，只剩 ES module；本專案用 `<script>` 直接載入（為了 file:// 離線可玩），升級會整個炸掉。真實事故：初建時先查過才選 r149。
-2. **改版必調 `?v=N` 快取號**（index.html 內全部 10 個標籤一起 +1）。GitHub Pages 快取很兇，之前專案發生過改了 JS 但玩家拿到舊檔。
+2. **改版必調 `?v=N` 快取號**（index.html 內全部 11 個標籤一起 +1，目前 v=2）。GitHub Pages 快取很兇，之前專案發生過改了 JS 但玩家拿到舊檔。
 3. **AI 的狀態機必須有多重退出條件**。真實事故：AI 甩尾原本只靠「彎度 < 0.22 才放開」，在連續彎道永不成立 → AI 方向鎖死繞圈衝出賽道，整場比賽卡在第 1 圈。現在退出條件有四個（彎道結束/太慢/轉向打架/超時 3 秒），改 AI 時不要刪。
 4. **純 vanilla JS 零依賴**（three.min.js 是唯一例外且已本地化）、拒絕照片貼圖（美術全部程序化幾何 + Canvas 貼圖）。
 
@@ -20,9 +20,10 @@
 |---|---|
 | `js/data/tracks.js` | **資料層**：CHARACTERS(8)、THEMES(16)、TRACKS(16)、CUPS(4)、GP_POINTS。**加賽道/角色/主題改這裡就好** |
 | `js/track.js` | Track 類：Catmull-Rom 閉合曲線取樣（位置/切線/左向量）→ 路面/路緣/護欄/路基/裝飾/小地圖全部程序化生成；`nearestIdx` / `lateralOffset` / `heightAt` 是物理的基礎查詢 |
-| `js/kart.js` | Kart 類：物理（加速/甩尾蓄力噴射/邊界/掉落重生/圈數）+ 程序化車模；`buildKartMesh` |
+| `js/kart.js` | Kart 類：物理（加速/甩尾蓄力噴射/邊界/掉落重生/圈數/打滑）+ 車模；`buildDriver` 是 8 位角色各自的造型（帽子/皇冠/龜殼/恐龍嘴…），`buildKartMesh` 含假陰影 |
 | `js/ai.js` | `computeAiInput`：前瞻導航、彎道減速、甩尾、橡皮筋（±7%~16%）、道具時機、卡住倒車 |
-| `js/items.js` | ItemWorld：道具箱/金幣/香蕉/綠紅龜殼/星星/閃電；`ITEM_TABLES` 是名次加權抽選表 |
+| `js/items.js` | ItemWorld：道具箱(?貼圖)/金幣/香蕉/綠紅龜殼/星星/閃電；`ITEM_TABLES` 是名次加權抽選表 |
+| `js/hazards.js` | HazardWorld：賽道陷阱。5 種行為（walker 橫越/roller 滾動/geyser 噴發/patch 打滑/car NPC車）× 20 種模型；設定寫在 THEMES[].hazards |
 | `js/audio.js` | AudioSys：WebAudio 全合成（無音檔）；音效/引擎聲/BGM；M 鍵或按鈕靜音（localStorage `msq-muted`） |
 | `js/ui.js` | UI：畫面切換、選單生成（角色/盃賽/賽道卡片）、HUD、小地圖繪製、觸控按鈕 |
 | `js/game.js` | Game：固定步長主迴圈、比賽流程（倒數→比賽→結算）、GP 積分、攝影機、排名、`GameTest` 測試掛鉤 |
@@ -36,6 +37,12 @@
 1. `TRACKS` 加一筆：`{ id, name, theme, width, laps, points: [[x,z,h?],...] }`（12~20 個控制點，閉合自動平滑）
 2. 加進某個 `CUPS` 的 `tracks`（或新增盃賽）
 3. `?v=N` +1，用下面的測試法跑一遍
+
+### 加陷阱/裝飾/地標的步驟
+- 陷阱：THEMES 某主題的 `hazards` 加 `{type, model, count}`；新模型在 hazards.js `buildHazardModel` 加 case + `HAZARD_RADIUS` 加半徑
+- 裝飾：THEMES 的 `decos` 加 `[類型, 數量]`；新模型在 track.js `buildDecoration` 加 case
+- 地標：THEMES 的 `landmark`；模型在 track.js `buildLandmark`（volcano 放賽道中心、planet 放天上，其餘放路邊）
+- 角色造型都在 kart.js `buildDriver`（每人一個 case；車體/眼睛/手臂是共用件）
 
 ## 測試法（背景分頁 Canvas 測試法）
 

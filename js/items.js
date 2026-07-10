@@ -39,13 +39,28 @@ class ItemWorld {
     const track = this.track, N = track.N;
     const rows = 7;
     const boxGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+    // 「?」貼圖
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 64, 64);
+    grad.addColorStop(0, '#5a8aff');
+    grad.addColorStop(1, '#b55aff');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 44px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('?', 32, 36);
+    const boxTex = new THREE.CanvasTexture(canvas);
     for (let r = 0; r < rows; r++) {
       const idx = Math.floor(N * (r + 0.55) / rows);
       const s = track.sample(idx);
       for (const lane of [-0.55, 0, 0.55]) {
         const mesh = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({
-          color: 0xffffff, transparent: true, opacity: 0.75,
-          emissive: 0x4488ff, emissiveIntensity: 0.6,
+          map: boxTex, transparent: true, opacity: 0.88,
+          emissive: 0x4488ff, emissiveIntensity: 0.45,
         }));
         const pos = s.pos.clone().addScaledVector(s.left, lane * track.halfW);
         pos.y += 1.1;

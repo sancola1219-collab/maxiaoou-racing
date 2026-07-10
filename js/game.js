@@ -124,8 +124,9 @@ const Game = {
     const player = karts.find(k => k.isPlayer);
 
     const items = new ItemWorld(track, karts, this.scene, { items: this.mode !== 'tt' });
+    const hazards = new HazardWorld(track, karts, this.scene);
     this.world = {
-      track, karts, player, items,
+      track, karts, player, items, hazards,
       raceTime: 0,
       phase: 'countdown',
       onLap: (lap) => {
@@ -268,6 +269,7 @@ const Game = {
     }
 
     world.items.update(dt, world);
+    world.hazards.update(dt, world);
     this.updateRanks();
     this.updateCamera(dt, false);
 

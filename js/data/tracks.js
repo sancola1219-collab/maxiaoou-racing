@@ -17,24 +17,61 @@ const CHARACTERS = [
 
 // 主題參數：sky 天空色 / ground 地面色 / road 路面色 / curb 路緣紅白條 /
 // open=true 出賽道是草地(減速)，false 有護欄 / voidFall=true 出界會掉落虛空 /
-// grip 抓地力(冰面低) / night 夜晚 / deco 裝飾物類型
+// grip 抓地力(冰面低) / night 夜晚
+// decos: [裝飾類型, 數量]（模型在 track.js buildDecoration）
+// landmark: 大型地標（track.js _buildLandmark）
+// mountains: 遠景山脈環 / cloudSky: 天上飄雲
+// hazards: 賽道陷阱 [{type, model, count}]（邏輯與模型在 hazards.js）
+//   type: walker=橫越馬路 / roller=沿路滾動 / geyser=定點噴發 / patch=打滑區 / car=NPC車
 const THEMES = {
-  grass:   { sky: 0x87ceeb, fog: 0xbfe3f0, ground: 0x6abf4b, road: 0x555a60, curbA: 0xd63b3b, curbB: 0xf2f2f2, rail: 0xc9c9c9, deco: 'tree',    open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.45 },
-  beach:   { sky: 0x8fd8ff, fog: 0xd6f0ff, ground: 0xf0dca0, road: 0x8a8f96, curbA: 0xff8a3d, curbB: 0xffffff, rail: 0xdedede, deco: 'palm',    open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.5 },
-  farm:    { sky: 0xa2d8ef, fog: 0xd0ecf5, ground: 0x8fbf4d, road: 0x9a7b4f, curbA: 0xd63b3b, curbB: 0xffffff, rail: 0xb08850, deco: 'farm',    open: true,  voidFall: false, grip: 0.95, night: false, offroad: 0.5 },
-  hills:   { sky: 0x7ec8f0, fog: 0xcfe9f7, ground: 0x54b04a, road: 0x5b6067, curbA: 0xe0a53d, curbB: 0xffffff, rail: 0xc9c9c9, deco: 'tree',    open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.45 },
-  desert:  { sky: 0xffd9a0, fog: 0xf5e2b8, ground: 0xe0b96a, road: 0x77706a, curbA: 0xc96f3b, curbB: 0xf5e6c8, rail: 0xb5966b, deco: 'cactus',  open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.42 },
-  forest:  { sky: 0x9fd6a8, fog: 0xc6e8cc, ground: 0x3f8f3f, road: 0x6a5f52, curbA: 0xd63b3b, curbB: 0xffffff, rail: 0x8a6a3f, deco: 'forest',  open: true,  voidFall: false, grip: 0.95, night: false, offroad: 0.4 },
-  harbor:  { sky: 0x8fc8e8, fog: 0xcfe6f2, ground: 0x8f9aa5, road: 0x4f545b, curbA: 0xd63b3b, curbB: 0xffffff, rail: 0x3f6fa8, deco: 'harbor',  open: false, voidFall: false, grip: 1.0, night: false, offroad: 0.6 },
-  canyon:  { sky: 0xf5c98a, fog: 0xe8cfa0, ground: 0xb5824f, road: 0x8a6a4a, curbA: 0xd63b3b, curbB: 0xf2e0c0, rail: 0x9a6f3f, deco: 'rock',    open: false, voidFall: false, grip: 1.0, night: false, offroad: 0.5 },
-  snow:    { sky: 0xd8e8f5, fog: 0xeef5fa, ground: 0xf2f6fa, road: 0x6f7680, curbA: 0x3b6fd6, curbB: 0xffffff, rail: 0xb8c8d8, deco: 'snow',    open: true,  voidFall: false, grip: 0.75, night: false, offroad: 0.5 },
-  swamp:   { sky: 0x2a2a45, fog: 0x3a3a55, ground: 0x3f5540, road: 0x4a4a52, curbA: 0x8a3bd6, curbB: 0xb8b8c8, rail: 0x5a5a6a, deco: 'ghost',   open: true,  voidFall: false, grip: 0.9, night: true,  offroad: 0.4 },
-  lava:    { sky: 0x4a2020, fog: 0x6a3020, ground: 0x3a2a28, road: 0x555055, curbA: 0xff6a2a, curbB: 0xffd0a0, rail: 0x7a4a3a, deco: 'lava',    open: false, voidFall: false, grip: 1.0, night: true,  offroad: 0.45 },
-  sky:     { sky: 0x6fb8ff, fog: 0xbfe0ff, ground: 0x6fb8ff, road: 0xe8e0d0, curbA: 0xffd54f, curbB: 0xffffff, rail: 0xf0e8d8, deco: 'cloud',   open: false, voidFall: true,  grip: 1.0, night: false, offroad: 0.6 },
-  city:    { sky: 0x141428, fog: 0x1e1e3a, ground: 0x2a2a38, road: 0x3a3a44, curbA: 0x00e5ff, curbB: 0xff4fd0, rail: 0x5a5a7a, deco: 'city',    open: false, voidFall: false, grip: 1.0, night: true,  offroad: 0.55 },
-  candy:   { sky: 0xffd6ec, fog: 0xffe8f4, ground: 0xffb0d8, road: 0xa87858, curbA: 0xff5fa0, curbB: 0xfff0b0, rail: 0xff9fc8, deco: 'candy',   open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.5 },
-  ice:     { sky: 0xbfe8ff, fog: 0xe0f4ff, ground: 0xd8f0fa, road: 0xa8d8ea, curbA: 0x3b6fd6, curbB: 0xffffff, rail: 0x8ac8e0, deco: 'ice',     open: true,  voidFall: false, grip: 0.55, night: false, offroad: 0.6 },
-  rainbow: { sky: 0x0a0a24, fog: 0x14143a, ground: 0x0a0a24, road: 0xffffff, curbA: 0xffffff, curbB: 0xffe066, rail: 0xfff0a0, deco: 'star',    open: false, voidFall: true,  grip: 0.95, night: true,  offroad: 0.6, rainbowRoad: true },
+  grass:   { sky: 0x87ceeb, fog: 0xbfe3f0, ground: 0x6abf4b, road: 0x555a60, curbA: 0xd63b3b, curbB: 0xf2f2f2, rail: 0xc9c9c9, open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.45,
+    decos: [['tree', 40], ['flower', 30], ['bush', 18], ['rock', 6]], mountains: 0x4a9a5a, cloudSky: true,
+    hazards: [{ type: 'walker', model: 'goomba', count: 4 }] },
+  beach:   { sky: 0x8fd8ff, fog: 0xd6f0ff, ground: 0xf0dca0, road: 0x8a8f96, curbA: 0xff8a3d, curbB: 0xffffff, rail: 0xdedede, open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.5,
+    decos: [['palm', 32], ['umbrella', 14], ['rock', 8], ['bush', 8]], cloudSky: true,
+    hazards: [{ type: 'walker', model: 'crab', count: 5 }] },
+  farm:    { sky: 0xa2d8ef, fog: 0xd0ecf5, ground: 0x8fbf4d, road: 0x9a7b4f, curbA: 0xd63b3b, curbB: 0xffffff, rail: 0xb08850, open: true,  voidFall: false, grip: 0.95, night: false, offroad: 0.5,
+    decos: [['farm', 30], ['flower', 22], ['corn', 16], ['bush', 8]], landmark: 'windmill', mountains: 0x5aa04a, cloudSky: true,
+    hazards: [{ type: 'walker', model: 'chicken', count: 5 }, { type: 'patch', model: 'mud', count: 3 }] },
+  hills:   { sky: 0x7ec8f0, fog: 0xcfe9f7, ground: 0x54b04a, road: 0x5b6067, curbA: 0xe0a53d, curbB: 0xffffff, rail: 0xc9c9c9, open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.45,
+    decos: [['tree', 36], ['flower', 24], ['bush', 14], ['rock', 8]], mountains: 0x3f8a4f, cloudSky: true,
+    hazards: [{ type: 'roller', model: 'haybale', count: 2 }, { type: 'walker', model: 'goomba', count: 3 }] },
+  desert:  { sky: 0xffd9a0, fog: 0xf5e2b8, ground: 0xe0b96a, road: 0x77706a, curbA: 0xc96f3b, curbB: 0xf5e6c8, rail: 0xb5966b, open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.42,
+    decos: [['cactus', 32], ['rock', 20], ['bones', 8]], landmark: 'pyramid', mountains: 0xc9a05f,
+    hazards: [{ type: 'roller', model: 'tumbleweed', count: 3 }, { type: 'walker', model: 'scorpion', count: 3 }] },
+  forest:  { sky: 0x9fd6a8, fog: 0xc6e8cc, ground: 0x3f8f3f, road: 0x6a5f52, curbA: 0xd63b3b, curbB: 0xffffff, rail: 0x8a6a3f, open: true,  voidFall: false, grip: 0.95, night: false, offroad: 0.4,
+    decos: [['forest', 44], ['mushroom', 20], ['bush', 14], ['flower', 10]], mountains: 0x2f6a3f,
+    hazards: [{ type: 'walker', model: 'hedgehog', count: 4 }, { type: 'patch', model: 'mud', count: 2 }] },
+  harbor:  { sky: 0x8fc8e8, fog: 0xcfe6f2, ground: 0x8f9aa5, road: 0x4f545b, curbA: 0xd63b3b, curbB: 0xffffff, rail: 0x3f6fa8, open: false, voidFall: false, grip: 1.0, night: false, offroad: 0.6,
+    decos: [['harbor', 34], ['crane', 6], ['rock', 4]], landmark: 'lighthouse', cloudSky: true,
+    hazards: [{ type: 'patch', model: 'oil', count: 4 }, { type: 'car', model: 'forklift', count: 2 }] },
+  canyon:  { sky: 0xf5c98a, fog: 0xe8cfa0, ground: 0xb5824f, road: 0x8a6a4a, curbA: 0xd63b3b, curbB: 0xf2e0c0, rail: 0x9a6f3f, open: false, voidFall: false, grip: 1.0, night: false, offroad: 0.5,
+    decos: [['rock', 38], ['cactus', 12], ['bones', 6]], mountains: 0xa5713f,
+    hazards: [{ type: 'roller', model: 'boulder', count: 3 }] },
+  snow:    { sky: 0xd8e8f5, fog: 0xeef5fa, ground: 0xf2f6fa, road: 0x6f7680, curbA: 0x3b6fd6, curbB: 0xffffff, rail: 0xb8c8d8, open: true,  voidFall: false, grip: 0.75, night: false, offroad: 0.5,
+    decos: [['snow', 36], ['ice', 12], ['rock', 6]], landmark: 'igloo', mountains: 0xe8f0f8,
+    hazards: [{ type: 'roller', model: 'snowball', count: 4 }] },
+  swamp:   { sky: 0x2a2a45, fog: 0x3a3a55, ground: 0x3f5540, road: 0x4a4a52, curbA: 0x8a3bd6, curbB: 0xb8b8c8, rail: 0x5a5a6a, open: true,  voidFall: false, grip: 0.9, night: true,  offroad: 0.4,
+    decos: [['ghost', 36], ['mushroom', 14], ['bush', 8]],
+    hazards: [{ type: 'walker', model: 'ghost', count: 4 }, { type: 'patch', model: 'poison', count: 3 }] },
+  lava:    { sky: 0x4a2020, fog: 0x6a3020, ground: 0x3a2a28, road: 0x555055, curbA: 0xff6a2a, curbB: 0xffd0a0, rail: 0x7a4a3a, open: false, voidFall: false, grip: 1.0, night: true,  offroad: 0.45,
+    decos: [['lava', 40]], landmark: 'volcano',
+    hazards: [{ type: 'geyser', model: 'lava', count: 6 }] },
+  sky:     { sky: 0x6fb8ff, fog: 0xbfe0ff, ground: 0x6fb8ff, road: 0xe8e0d0, curbA: 0xffd54f, curbB: 0xffffff, rail: 0xf0e8d8, open: false, voidFall: true,  grip: 1.0, night: false, offroad: 0.6,
+    decos: [['cloud', 46]], landmark: 'planet',
+    hazards: [{ type: 'walker', model: 'bird', count: 3 }] },
+  city:    { sky: 0x141428, fog: 0x1e1e3a, ground: 0x2a2a38, road: 0x3a3a44, curbA: 0x00e5ff, curbB: 0xff4fd0, rail: 0x5a5a7a, open: false, voidFall: false, grip: 1.0, night: true,  offroad: 0.55,
+    decos: [['city', 42], ['streetlight', 14]],
+    hazards: [{ type: 'car', model: 'taxi', count: 3 }, { type: 'patch', model: 'oil', count: 2 }] },
+  candy:   { sky: 0xffd6ec, fog: 0xffe8f4, ground: 0xffb0d8, road: 0xa87858, curbA: 0xff5fa0, curbB: 0xfff0b0, rail: 0xff9fc8, open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.5,
+    decos: [['candy', 30], ['gumdrop', 16], ['flower', 12]], landmark: 'castle', cloudSky: true,
+    hazards: [{ type: 'walker', model: 'gumball', count: 4 }, { type: 'patch', model: 'syrup', count: 2 }] },
+  ice:     { sky: 0xbfe8ff, fog: 0xe0f4ff, ground: 0xd8f0fa, road: 0xa8d8ea, curbA: 0x3b6fd6, curbB: 0xffffff, rail: 0x8ac8e0, open: true,  voidFall: false, grip: 0.55, night: false, offroad: 0.6,
+    decos: [['ice', 30], ['snow', 16], ['rock', 6]], landmark: 'igloo', mountains: 0xd0e8f5,
+    hazards: [{ type: 'roller', model: 'snowball', count: 3 }] },
+  rainbow: { sky: 0x0a0a24, fog: 0x14143a, ground: 0x0a0a24, road: 0xffffff, curbA: 0xffffff, curbB: 0xffe066, rail: 0xfff0a0, open: false, voidFall: true,  grip: 0.95, night: true,  offroad: 0.6, rainbowRoad: true,
+    decos: [['star', 1]], landmark: 'planet',
+    hazards: [{ type: 'walker', model: 'star', count: 3 }] },
 };
 
 const TRACKS = [

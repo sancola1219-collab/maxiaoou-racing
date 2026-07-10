@@ -61,6 +61,36 @@ const UI = {
   },
 
   // ---------- 選單生成 ----------
+  // 用小型 3D 渲染器幫每位角色拍一張縮圖
+  _charThumb(ch) {
+    if (!this._thumbCache) this._thumbCache = {};
+    if (this._thumbCache[ch.id]) return this._thumbCache[ch.id];
+    if (!this._thumbRenderer) {
+      this._thumbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      this._thumbRenderer.setSize(150, 120);
+    }
+    const r = this._thumbRenderer;
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x887a66, 1.15));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.7);
+    dl.position.set(2, 4, 3);
+    scene.add(dl);
+    const kart = buildKartMesh(ch);
+    kart.rotation.y = 0.55;
+    scene.add(kart);
+    const cam = new THREE.PerspectiveCamera(36, 150 / 120, 0.1, 50);
+    cam.position.set(2.4, 2.2, 4.0);
+    cam.lookAt(0, 1.15, 0);
+    r.render(scene, cam);
+    const url = r.domElement.toDataURL(); // 同一個 task 內同步取圖才拿得到
+    scene.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+    });
+    this._thumbCache[ch.id] = url;
+    return url;
+  },
+
   buildCharSelect() {
     const grid = this.$('char-grid');
     grid.innerHTML = '';
@@ -71,7 +101,7 @@ const UI = {
       const bars = statNames.map(([key, label]) =>
         `<div class="row"><span class="label">${label}</span><span class="bar"><span class="fill" style="width:${ch.stats[key] * 20}%"></span></span></div>`
       ).join('');
-      card.innerHTML = `<div class="char-swatch" style="background:#${ch.body.toString(16).padStart(6, '0')}"></div>
+      card.innerHTML = `<img class="thumb" src="${this._charThumb(ch)}" alt="${ch.name}">
         <div class="name">${ch.name}</div><div class="stat-bars">${bars}</div>`;
       card.onclick = () => {
         this.selection.charId = ch.id;

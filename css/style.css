@@ -68,6 +68,7 @@ html, body {
 .card .name { font-size: 17px; font-weight: bold; margin-top: 4px; }
 .card .desc { font-size: 12px; opacity: 0.8; margin-top: 3px; min-height: 15px; }
 .card canvas { width: 100%; border-radius: 8px; background: rgba(0,0,0,0.3); }
+.card img.thumb { width: 100%; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.25)); }
 
 .char-swatch { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto; border: 3px solid #fff; }
 .stat-bars { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; font-size: 10px; text-align: left; }

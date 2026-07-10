@@ -110,6 +110,8 @@ class Track {
     if (!th.open && !th.voidFall) this._buildRails(scene, th);
     this._buildStartGate(scene, th);
     this._buildDecorations(scene, th);
+    this._buildLandmark(scene, th);
+    this._buildSkyExtras(scene, th);
     this._buildMinimap();
   }
 
@@ -278,19 +280,80 @@ class Track {
 
   _buildDecorations(scene, th) {
     const group = new THREE.Group();
-    const count = 90;
-    for (let n = 0; n < count; n++) {
-      const spot = this._sideSpot(6, 60);
-      // 開放賽道的裝飾放在平地上；封閉/高架賽道跟著路面高度
-      const y = th.open ? 0 : spot.y;
-      const deco = buildDecoration(th.deco, this.rand);
-      if (!deco) continue;
-      deco.position.set(spot.x, th.deco === 'cloud' ? spot.y - 10 - this.rand() * 15 : y, spot.z);
-      deco.rotation.y = this.rand() * Math.PI * 2;
-      group.add(deco);
+    for (const [type, count] of (th.decos || [])) {
+      if (type === 'star') continue; // 星星在 _buildSkyExtras 大量生成
+      for (let n = 0; n < count; n++) {
+        const spot = this._sideSpot(6, 60);
+        // 開放賽道的裝飾放在平地上；封閉/高架賽道跟著路面高度
+        const y = th.open ? 0 : spot.y;
+        const deco = buildDecoration(type, this.rand);
+        if (!deco) continue;
+        deco.position.set(spot.x, type === 'cloud' ? spot.y - 10 - this.rand() * 15 : y, spot.z);
+        deco.rotation.y = this.rand() * Math.PI * 2;
+        group.add(deco);
+      }
     }
-    if (th.deco === 'star') {
-      // 彩虹之路：滿天星斗
+    // 起跑門旁的彩色氣球串（每條賽道都有，比賽氣氛）
+    const s0 = this.sample(0);
+    for (const side of [1, -1]) {
+      const balloons = buildDecoration('balloons', this.rand);
+      balloons.position.set(
+        s0.pos.x + s0.left.x * (this.halfW + 5) * side, s0.pos.y,
+        s0.pos.z + s0.left.z * (this.halfW + 5) * side
+      );
+      group.add(balloons);
+    }
+    scene.add(group);
+  }
+
+  // 大型地標：放在離賽道有點距離的顯眼位置
+  _buildLandmark(scene, th) {
+    if (!th.landmark) return;
+    const lm = buildLandmark(th.landmark, this.rand);
+    if (!lm) return;
+    if (th.landmark === 'volcano') {
+      // 火山放在賽道中心（賽道繞著它跑）
+      let cx = 0, cz = 0;
+      for (const p of this.def.points) { cx += p[0]; cz += p[1]; }
+      lm.position.set(cx / this.def.points.length, 0, cz / this.def.points.length);
+    } else if (th.landmark === 'planet') {
+      lm.position.set(300, 120, -260);
+    } else {
+      const spot = this._sideSpot(50, 90);
+      lm.position.set(spot.x, th.open ? 0 : spot.y, spot.z);
+    }
+    scene.add(lm);
+  }
+
+  // 遠景：山脈環、高空雲、彩虹賽道的滿天星斗
+  _buildSkyExtras(scene, th) {
+    const group = new THREE.Group();
+    if (th.mountains) {
+      const mat = new THREE.MeshLambertMaterial({ color: th.mountains });
+      for (let n = 0; n < 12; n++) {
+        const a = (n / 12) * Math.PI * 2 + this.rand() * 0.4;
+        const r = 620 + this.rand() * 200;
+        const h = 90 + this.rand() * 130;
+        const m = new THREE.Mesh(new THREE.ConeGeometry(h * 0.9, h, 7), mat);
+        m.position.set(Math.cos(a) * r, h / 2 - 20, Math.sin(a) * r);
+        group.add(m);
+        if (h > 160) { // 高山加雪頂
+          const cap = new THREE.Mesh(new THREE.ConeGeometry(h * 0.28, h * 0.32, 7), new THREE.MeshLambertMaterial({ color: 0xf5fafd }));
+          cap.position.set(m.position.x, h - h * 0.16 - 20, m.position.z);
+          group.add(cap);
+        }
+      }
+    }
+    if (th.cloudSky) {
+      for (let n = 0; n < 12; n++) {
+        const cloud = buildDecoration('cloud', this.rand);
+        const a = this.rand() * Math.PI * 2, r = 150 + this.rand() * 350;
+        cloud.position.set(Math.cos(a) * r, 60 + this.rand() * 50, Math.sin(a) * r);
+        cloud.scale.setScalar(2 + this.rand() * 2);
+        group.add(cloud);
+      }
+    }
+    if ((th.decos || []).some(([t]) => t === 'star')) {
       for (let n = 0; n < 220; n++) {
         const star = new THREE.Mesh(
           new THREE.SphereGeometry(0.9 + this.rand() * 1.4, 5, 4),
@@ -464,8 +527,181 @@ function buildDecoration(type, rand) {
       }), 0, s * 2, 0);
       break;
     }
+    case 'flower': {
+      const colors = [0xff5f8a, 0xffd54f, 0xff8a3d, 0xb57aff, 0xffffff];
+      const c = colors[Math.floor(rand() * colors.length)];
+      add(new THREE.CylinderGeometry(0.06, 0.08, 1.1, 5), _lam(0x3f8f3f), 0, 0.55, 0);
+      for (let k = 0; k < 5; k++) {
+        const petal = add(new THREE.SphereGeometry(0.28, 6, 5), _lam(c), 0, 1.15, 0);
+        petal.scale.set(1, 0.4, 0.6);
+        petal.rotation.y = k * Math.PI * 2 / 5;
+        petal.translateX(0.32);
+      }
+      add(new THREE.SphereGeometry(0.18, 6, 5), _lam(0xffe066), 0, 1.2, 0);
+      break;
+    }
+    case 'bush': {
+      const green = rand() < 0.5 ? 0x3f9a3f : 0x54b04a;
+      add(new THREE.SphereGeometry(1.1, 8, 6), _lam(green), 0, 0.8, 0).scale.y = 0.8;
+      add(new THREE.SphereGeometry(0.8, 8, 6), _lam(green), 0.9, 0.6, 0.2).scale.y = 0.8;
+      add(new THREE.SphereGeometry(0.7, 8, 6), _lam(green), -0.8, 0.55, -0.2).scale.y = 0.8;
+      if (rand() < 0.4) for (let k = 0; k < 3; k++) {
+        add(new THREE.SphereGeometry(0.12, 5, 4), _lam(0xff4f5f), rand() * 1.6 - 0.8, 0.9 + rand() * 0.5, 0.7);
+      }
+      break;
+    }
+    case 'mushroom': {
+      const s = 0.6 + rand() * 0.9;
+      add(new THREE.CylinderGeometry(0.28 * s, 0.36 * s, 1.4 * s, 7), _lam(0xf2e8d8), 0, 0.7 * s, 0);
+      const cap = add(new THREE.SphereGeometry(0.95 * s, 10, 7, 0, Math.PI * 2, 0, Math.PI / 2), _lam(rand() < 0.5 ? 0xd63b3b : 0xb57aff), 0, 1.3 * s, 0);
+      cap.scale.y = 0.75;
+      for (let k = 0; k < 4; k++) {
+        const a = rand() * Math.PI * 2, r = rand() * 0.6 * s;
+        add(new THREE.SphereGeometry(0.16 * s, 5, 4), _lam(0xffffff), Math.cos(a) * r, 1.55 * s, Math.sin(a) * r);
+      }
+      break;
+    }
+    case 'corn': {
+      for (let k = 0; k < 3; k++) {
+        const x = (k - 1) * 0.9 + rand() * 0.3;
+        add(new THREE.CylinderGeometry(0.12, 0.18, 3.2, 5), _lam(0x4a9a3f), x, 1.6, 0);
+        const leaf = add(new THREE.ConeGeometry(0.35, 1.6, 4), _lam(0x5ab04a), x + 0.35, 1.6, 0);
+        leaf.rotation.z = -0.9;
+        add(new THREE.SphereGeometry(0.28, 6, 5), _lam(0xffd54f), x, 2.6, 0).scale.y = 1.8;
+      }
+      break;
+    }
+    case 'umbrella': {
+      const c = [0xff5f5f, 0x5fd0ff, 0xffd54f, 0xff8adf][Math.floor(rand() * 4)];
+      add(new THREE.CylinderGeometry(0.09, 0.09, 3.4, 6), _lam(0xf2f2f2), 0, 1.7, 0);
+      const top = add(new THREE.SphereGeometry(2.1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.6), _lam(c), 0, 2.9, 0);
+      top.scale.y = 0.75;
+      if (rand() < 0.5) {
+        const towel = add(new THREE.BoxGeometry(2.2, 0.08, 1.2), _lam(0xffffff), 2.4, 0.06, 0.6);
+        towel.rotation.y = rand() * Math.PI;
+      }
+      break;
+    }
+    case 'bones': {
+      add(new THREE.SphereGeometry(0.7, 8, 6), _lam(0xf2ecd8), 0, 0.5, 0).scale.set(1, 0.9, 1.2);
+      add(new THREE.SphereGeometry(0.22, 5, 4), _lam(0x2a2a2a), 0.25, 0.62, 0.55);
+      add(new THREE.SphereGeometry(0.22, 5, 4), _lam(0x2a2a2a), -0.25, 0.62, 0.55);
+      for (let k = 0; k < 3; k++) {
+        const rib = add(new THREE.CylinderGeometry(0.07, 0.07, 1.6, 5), _lam(0xf2ecd8), -1.2 - k * 0.6, 0.15, 0);
+        rib.rotation.x = Math.PI / 2;
+      }
+      break;
+    }
+    case 'crane': {
+      add(new THREE.BoxGeometry(1.2, 16, 1.2), _lam(0xe8b23a), 0, 8, 0);
+      add(new THREE.BoxGeometry(12, 0.9, 0.9), _lam(0xe8b23a), 4.5, 15.5, 0);
+      add(new THREE.CylinderGeometry(0.05, 0.05, 6, 4), _lam(0x555555), 9, 12.5, 0);
+      add(new THREE.BoxGeometry(2.4, 1.6, 1.6), _lam([0xc9542a, 0x3f6fa8, 0x4a9a3f][Math.floor(rand() * 3)]), 9, 9, 0);
+      break;
+    }
+    case 'streetlight': {
+      add(new THREE.CylinderGeometry(0.14, 0.18, 7.5, 6), _lam(0x3a3a44), 0, 3.75, 0);
+      add(new THREE.CylinderGeometry(0.1, 0.1, 2.2, 5), _lam(0x3a3a44), 1.1, 7.4, 0).rotation.z = Math.PI / 2;
+      add(new THREE.SphereGeometry(0.4, 8, 6), _lam(0xfff0b0, 0xffe066), 2.1, 7.2, 0);
+      break;
+    }
+    case 'gumdrop': {
+      const c = [0xff5fa0, 0x5fd0ff, 0x8aff5f, 0xffd54f, 0xb57aff][Math.floor(rand() * 5)];
+      const s = 0.8 + rand() * 1.2;
+      const drop = add(new THREE.SphereGeometry(s, 10, 8, 0, Math.PI * 2, 0, Math.PI / 1.8), _lam(c), 0, s * 0.5, 0);
+      drop.scale.y = 1.1;
+      break;
+    }
+    case 'balloons': {
+      const colors = [0xd63b3b, 0xffd54f, 0x3b6fd6, 0x4a9a3f, 0xff8adf];
+      for (let k = 0; k < 5; k++) {
+        const h = 5 + rand() * 3.5;
+        const x = rand() * 2.4 - 1.2, z = rand() * 2.4 - 1.2;
+        add(new THREE.CylinderGeometry(0.02, 0.02, h, 3), _lam(0xd8d8d8), x, h / 2, z);
+        const b = add(new THREE.SphereGeometry(0.65, 8, 7), _lam(colors[k % 5]), x, h + 0.5, z);
+        b.scale.y = 1.2;
+      }
+      break;
+    }
     case 'star':
       return null; // 星星另外大量生成
+  }
+  return g;
+}
+
+// ---------- 大型地標 ----------
+function buildLandmark(type, rand) {
+  const g = new THREE.Group();
+  const add = (geo, mat, x, y, z) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    g.add(m);
+    return m;
+  };
+  switch (type) {
+    case 'windmill': {
+      add(new THREE.CylinderGeometry(3.5, 5, 22, 8), _lam(0xe8e0d0), 0, 11, 0);
+      add(new THREE.ConeGeometry(4.5, 5, 8), _lam(0xc9542a), 0, 24.5, 0);
+      const hub = add(new THREE.SphereGeometry(1, 8, 6), _lam(0x7b4a21), 0, 20, 4.2);
+      for (let k = 0; k < 4; k++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(1.8, 11, 0.3), _lam(0xf2e8d8));
+        blade.position.set(0, 5.5, 0);
+        const arm = new THREE.Group();
+        arm.add(blade);
+        arm.rotation.z = k * Math.PI / 2 + 0.4;
+        arm.position.copy(hub.position);
+        g.add(arm);
+      }
+      break;
+    }
+    case 'pyramid': {
+      add(new THREE.ConeGeometry(38, 34, 4), _lam(0xd8b26a), 0, 17, 0);
+      add(new THREE.ConeGeometry(22, 20, 4), _lam(0xc9a05f), 55, 10, 25);
+      break;
+    }
+    case 'lighthouse': {
+      for (let k = 0; k < 5; k++) {
+        add(new THREE.CylinderGeometry(2.6 - k * 0.25, 2.8 - k * 0.25, 4.5, 10), _lam(k % 2 === 0 ? 0xd63b3b : 0xf2f2f2), 0, 2.25 + k * 4.5, 0);
+      }
+      add(new THREE.CylinderGeometry(1.6, 1.6, 2.5, 8), _lam(0xfff0b0, 0xffe066), 0, 24, 0);
+      add(new THREE.ConeGeometry(2.2, 2.5, 8), _lam(0x8a3a2a), 0, 26.5, 0);
+      break;
+    }
+    case 'igloo': {
+      const dome = add(new THREE.SphereGeometry(6, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), _lam(0xf2f8fc), 0, 0, 0);
+      dome.scale.y = 0.8;
+      const door = add(new THREE.CylinderGeometry(2, 2, 4, 8, 1, false, 0, Math.PI), _lam(0xe0ecf5), 0, 0, 6);
+      door.rotation.z = Math.PI / 2;
+      door.rotation.y = Math.PI / 2;
+      break;
+    }
+    case 'volcano': {
+      add(new THREE.ConeGeometry(60, 55, 10), _lam(0x4a3530), 0, 27.5, 0);
+      add(new THREE.CylinderGeometry(14, 18, 6, 10), _lam(0xff5a1a, 0xff5a1a), 0, 53, 0);
+      // 噴出的岩漿塊
+      for (let k = 0; k < 5; k++) {
+        add(new THREE.SphereGeometry(1.5 + rand() * 1.5, 6, 5), _lam(0xff8a2a, 0xff6a1a), rand() * 30 - 15, 58 + rand() * 14, rand() * 30 - 15);
+      }
+      break;
+    }
+    case 'planet': {
+      add(new THREE.SphereGeometry(30, 16, 12), _lam(0xe8a05f), 0, 0, 0);
+      const ring = add(new THREE.TorusGeometry(46, 4, 8, 28), _lam(0xffd54f), 0, 0, 0);
+      ring.rotation.x = Math.PI / 2.4;
+      add(new THREE.SphereGeometry(8, 10, 8), _lam(0xbfd8ff), 70, 25, -30);
+      break;
+    }
+    case 'castle': {
+      const pink = 0xffb0d8, cream = 0xfff0e0;
+      add(new THREE.BoxGeometry(16, 12, 12), _lam(cream), 0, 6, 0);
+      for (const [x, z] of [[-8, 6], [8, 6], [-8, -6], [8, -6]]) {
+        add(new THREE.CylinderGeometry(2.5, 2.5, 16, 8), _lam(cream), x, 8, z);
+        add(new THREE.ConeGeometry(3.2, 6, 8), _lam(pink), x, 19, z);
+      }
+      add(new THREE.ConeGeometry(4, 8, 8), _lam(pink), 0, 16, 0);
+      add(new THREE.BoxGeometry(3.5, 5, 0.5), _lam(0xa87858), 0, 2.5, 6.2);
+      break;
+    }
   }
   return g;
 }
