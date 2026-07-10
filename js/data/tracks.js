@@ -72,6 +72,19 @@ const THEMES = {
   rainbow: { sky: 0x0a0a24, fog: 0x14143a, ground: 0x0a0a24, road: 0xffffff, curbA: 0xffffff, curbB: 0xffe066, rail: 0xfff0a0, open: false, voidFall: true,  grip: 0.95, night: true,  offroad: 0.6, rainbowRoad: true,
     decos: [['star', 1]], landmark: 'planet',
     hazards: [{ type: 'walker', model: 'star', count: 3 }] },
+  sakura:  { sky: 0xa8d8f0, fog: 0xf5dce8, ground: 0x7abf5a, road: 0x6a6a72, curbA: 0xff8ac8, curbB: 0xffffff, rail: 0xc9c9c9, open: true,  voidFall: false, grip: 1.0, night: false, offroad: 0.45,
+    decos: [['sakura', 34], ['lantern', 12], ['flower', 20], ['bush', 10]], landmark: 'torii', mountains: 0x8fb56a, cloudSky: true,
+    hazards: [{ type: 'walker', model: 'frog', count: 4 }, { type: 'patch', model: 'petals', count: 2 }] },
+  // floaty=true：水中浮力，跳躍飄、重力小
+  underwater: { sky: 0x1a5a8a, fog: 0x2a6a9a, fogNear: 40, fogFar: 330, ground: 0xc9b98a, road: 0x4a7a8a, curbA: 0x2ae8d8, curbB: 0xf0f8ff, rail: 0x3a8aa5, open: true, voidFall: false, grip: 0.9, night: false, offroad: 0.5, floaty: true,
+    decos: [['coral', 28], ['seaweed', 24], ['bubble', 20], ['rock', 8]], landmark: 'wreck',
+    hazards: [{ type: 'walker', model: 'fish', count: 5 }] },
+  haunted: { sky: 0x1a1228, fog: 0x2a1f3a, ground: 0x2f3a2f, road: 0x3f3a45, curbA: 0xff8a2a, curbB: 0x9a8ab5, rail: 0x5a4a6a, open: true, voidFall: false, grip: 0.92, night: true, offroad: 0.4,
+    decos: [['grave', 22], ['pumpkin', 14], ['ghost', 18], ['mushroom', 8]], landmark: 'mansion',
+    hazards: [{ type: 'walker', model: 'bat', count: 4 }, { type: 'patch', model: 'poison', count: 2 }] },
+  space:   { sky: 0x05050f, fog: 0x0a0a1a, ground: 0x05050f, road: 0x8a92a5, curbA: 0x00e5ff, curbB: 0xffffff, rail: 0x6a7a95, open: false, voidFall: true, grip: 1.0, night: true, offroad: 0.6,
+    decos: [['star', 1], ['satellite', 12]], landmark: 'earth',
+    hazards: [{ type: 'roller', model: 'asteroid', count: 3 }] },
 };
 
 const TRACKS = [
@@ -127,6 +140,32 @@ const TRACKS = [
   { id: 't16', name: '彩虹之路', theme: 'rainbow', width: 14, laps: 3, points: [
     [0,-260,60],[140,-252,66],[250,-192,74],[300,-80,84],[280,42,92],[192,122,86],[102,92,78],[22,142,72],[62,232,66],[-42,292,60],[-162,262,56],[-242,182,52],[-192,92,58],[-262,12,66],[-302,-90,74],[-232,-192,66],[-112,-252,60],
   ]},
+  // ---------- 月亮盃 ----------
+  { id: 't17', name: '櫻花公園', theme: 'sakura', width: 17, laps: 3, points: [
+    [0,-150],[85,-145],[140,-95],[125,-40],[165,10],[195,75],[150,130],[85,110],[30,150],[-40,180],[-105,150],[-90,95],[-140,60],[-185,10],[-165,-60],[-110,-95],[-125,-145],[-60,-165],
+  ]},
+  { id: 't18', name: '水底世界', theme: 'underwater', width: 19, laps: 3, points: [
+    [0,-170],[100,-160],[180,-110],[210,-30],[185,55],[120,110],[35,125],[-45,100],[-120,130],[-190,95],[-215,15],[-185,-70],[-120,-125],[-45,-160],
+  ]},
+  { id: 't19', name: '幽靈鬼宅', theme: 'haunted', width: 14, laps: 3, points: [
+    [0,-160],[70,-155],[125,-115],[105,-60],[160,-35],[185,25],[135,65],[75,45],[45,95],[95,135],[55,185],[-15,160],[-30,105],[-85,85],[-70,35],[-125,15],[-180,55],[-215,-5],[-175,-65],[-115,-45],[-95,-105],[-140,-150],[-70,-170],
+  ]},
+  { id: 't20', name: '星際基地', theme: 'space', width: 14, laps: 3, points: [
+    [0,-170,55],[95,-160,60],[165,-110,66],[185,-30,72],[150,45,78],[170,115,72],[100,160,66],[15,135,60],[-70,165,64],[-150,120,70],[-180,40,76],[-150,-40,70],[-170,-115,62],[-95,-160,56],
+  ]},
+  // ---------- 王冠盃 ----------
+  { id: 't21', name: '綠茵大賽道', theme: 'grass', width: 20, laps: 3, points: [
+    [0,-220],[130,-222],[250,-215],[290,-150],[280,-60],[290,40],[250,130],[150,160],[60,140],[-30,160],[-120,140],[-160,80],[-140,10],[-160,-60],[-230,-90],[-250,-160],[-180,-210],[-90,-222],
+  ]},
+  { id: 't22', name: '火山試煉', theme: 'lava', width: 15, laps: 3, points: [
+    [0,-200,4],[105,-190,10],[185,-140,18],[215,-55,26],[185,30,32],[110,60,36],[45,105,40],[95,155,44],[25,195,40],[-60,165,34],[-45,105,28],[-110,75,22],[-180,105,18],[-220,35,12],[-195,-55,8],[-130,-115,6],[-150,-175,4],[-75,-200,2],
+  ]},
+  { id: 't23', name: '賭城大道', theme: 'city', width: 18, laps: 3, points: [
+    [0,-230],[160,-232],[260,-215],[275,-140],[220,-110],[225,-45],[280,-15],[290,70],[240,125],[245,185],[170,215],[80,190],[20,225],[-80,230],[-150,195],[-140,130],[-200,110],[-245,55],[-230,-25],[-170,-60],[-185,-130],[-245,-160],[-215,-220],[-110,-232],
+  ]},
+  { id: 't24', name: '彩虹狂想曲', theme: 'rainbow', width: 13, laps: 3, points: [
+    [0,-290,70],[150,-280,76],[265,-225,84],[330,-120,94],[310,-10,100],[230,60,92],[260,150,84],[175,210,78],[75,175,72],[-15,215,68],[10,300,64],[-90,320,60],[-190,275,58],[-160,190,62],[-240,150,68],[-310,80,76],[-320,-30,84],[-260,-140,76],[-150,-195,68],[-170,-270,62],[-70,-295,64],
+  ]},
 ];
 
 const CUPS = [
@@ -134,6 +173,8 @@ const CUPS = [
   { id: 'flower',    name: '花之盃', icon: '🌸', tracks: ['t05', 't06', 't07', 't08'] },
   { id: 'star',      name: '星星盃', icon: '⭐', tracks: ['t09', 't10', 't11', 't12'] },
   { id: 'lightning', name: '閃電盃', icon: '⚡', tracks: ['t13', 't14', 't15', 't16'] },
+  { id: 'moon',      name: '月亮盃', icon: '🌙', tracks: ['t17', 't18', 't19', 't20'] },
+  { id: 'crown',     name: '王冠盃', icon: '👑', tracks: ['t21', 't22', 't23', 't24'] },
 ];
 
 // GP 積分（第1名~第8名）

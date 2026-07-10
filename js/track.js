@@ -103,7 +103,7 @@ class Track {
   build(scene) {
     const th = this.theme;
     scene.background = new THREE.Color(th.sky);
-    scene.fog = new THREE.Fog(th.fog, 120, th.night ? 420 : 620);
+    scene.fog = new THREE.Fog(th.fog, th.fogNear || 120, th.fogFar || (th.night ? 420 : 620));
 
     this._buildRoad(scene, th);
     this._buildGround(scene, th);
@@ -316,7 +316,7 @@ class Track {
       let cx = 0, cz = 0;
       for (const p of this.def.points) { cx += p[0]; cz += p[1]; }
       lm.position.set(cx / this.def.points.length, 0, cz / this.def.points.length);
-    } else if (th.landmark === 'planet') {
+    } else if (th.landmark === 'planet' || th.landmark === 'earth') {
       lm.position.set(300, 120, -260);
     } else {
       const spot = this._sideSpot(50, 90);
@@ -402,12 +402,22 @@ class Track {
 }
 
 // ---------- 裝飾物模型 ----------
+// 材質快取：同色材質共用一份（省記憶體與建立成本）。
+// 快取材質標記 cached，disposeScene 會跳過不銷毀。絕不要改 _lam 回傳材質的顏色！
+const _lamCache = new Map();
 function _lam(color, emissive) {
-  return new THREE.MeshLambertMaterial({
-    color,
-    emissive: emissive || 0x000000,
-    emissiveIntensity: emissive ? 0.7 : 0,
-  });
+  const key = color + '|' + (emissive || 0);
+  let m = _lamCache.get(key);
+  if (!m) {
+    m = new THREE.MeshLambertMaterial({
+      color,
+      emissive: emissive || 0x000000,
+      emissiveIntensity: emissive ? 0.7 : 0,
+    });
+    m.userData.cached = true;
+    _lamCache.set(key, m);
+  }
+  return m;
 }
 
 function buildDecoration(type, rand) {
@@ -623,6 +633,89 @@ function buildDecoration(type, rand) {
       }
       break;
     }
+    case 'sakura': {
+      // 櫻花樹：粉紅花球
+      add(new THREE.CylinderGeometry(0.45, 0.65, 3.2, 6), _lam(0x6a4a2a), 0, 1.6, 0);
+      const pink = [0xffb0d8, 0xff9fc8, 0xffc8e0];
+      add(new THREE.SphereGeometry(2.2, 9, 7), _lam(pink[Math.floor(rand() * 3)]), 0, 4.4, 0);
+      add(new THREE.SphereGeometry(1.4, 8, 6), _lam(pink[Math.floor(rand() * 3)]), 1.4, 3.6, 0.5);
+      add(new THREE.SphereGeometry(1.2, 8, 6), _lam(pink[Math.floor(rand() * 3)]), -1.3, 3.8, -0.4);
+      // 地上的落花
+      for (let k = 0; k < 4; k++) {
+        const petal = add(new THREE.CircleGeometry(0.22, 6), _lam(0xffc8e0), rand() * 5 - 2.5, 0.03, rand() * 5 - 2.5);
+        petal.rotation.x = -Math.PI / 2;
+      }
+      break;
+    }
+    case 'lantern': {
+      // 石燈籠
+      add(new THREE.BoxGeometry(0.9, 0.3, 0.9), _lam(0x8a8a88), 0, 0.15, 0);
+      add(new THREE.CylinderGeometry(0.18, 0.24, 1.4, 6), _lam(0x9a9a98), 0, 1.0, 0);
+      add(new THREE.BoxGeometry(1.0, 0.7, 1.0), _lam(0xa5a5a2), 0, 2.05, 0);
+      add(new THREE.SphereGeometry(0.22, 6, 5), _lam(0xfff0b0, 0xffd54f), 0, 2.05, 0);
+      add(new THREE.ConeGeometry(0.95, 0.6, 4), _lam(0x8a8a88), 0, 2.7, 0);
+      break;
+    }
+    case 'coral': {
+      const c = [0xff6a8a, 0xff9a5f, 0xb57aff, 0x5fd0a0][Math.floor(rand() * 4)];
+      for (let k = 0; k < 5; k++) {
+        const branch = add(new THREE.CylinderGeometry(0.1, 0.22, 1.6 + rand() * 1.6, 5), _lam(c),
+          rand() * 1.2 - 0.6, 0.9 + rand() * 0.6, rand() * 1.2 - 0.6);
+        branch.rotation.z = (rand() - 0.5) * 0.9;
+        branch.rotation.x = (rand() - 0.5) * 0.9;
+      }
+      break;
+    }
+    case 'seaweed': {
+      for (let k = 0; k < 3; k++) {
+        const blade = add(new THREE.CylinderGeometry(0.08, 0.16, 2.8 + rand() * 2, 5), _lam(0x2f8f5f),
+          (k - 1) * 0.5, 1.6 + rand() * 0.8, rand() * 0.4 - 0.2);
+        blade.rotation.z = (rand() - 0.5) * 0.5;
+        blade.scale.z = 0.4;
+      }
+      break;
+    }
+    case 'bubble': {
+      const mat = new THREE.MeshLambertMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0.35 });
+      for (let k = 0; k < 4; k++) {
+        add(new THREE.SphereGeometry(0.2 + rand() * 0.4, 7, 6), mat, rand() * 2 - 1, 1 + rand() * 7, rand() * 2 - 1);
+      }
+      break;
+    }
+    case 'grave': {
+      if (rand() < 0.6) {
+        add(new THREE.BoxGeometry(1.1, 1.6, 0.25), _lam(0x8a8a92), 0, 0.8, 0);
+        add(new THREE.CylinderGeometry(0.55, 0.55, 0.25, 10, 1, false, 0, Math.PI), _lam(0x8a8a92), 0, 1.6, 0).rotation.x = Math.PI / 2;
+      } else {
+        // 十字架
+        add(new THREE.BoxGeometry(0.28, 1.8, 0.22), _lam(0x7a7a82), 0, 0.9, 0);
+        add(new THREE.BoxGeometry(0.95, 0.26, 0.22), _lam(0x7a7a82), 0, 1.3, 0);
+      }
+      const mound = add(new THREE.SphereGeometry(0.8, 7, 5), _lam(0x3a4a3a), 0, 0, 0.6);
+      mound.scale.set(1, 0.3, 1.4);
+      break;
+    }
+    case 'pumpkin': {
+      const s = 0.6 + rand() * 0.8;
+      const body = add(new THREE.SphereGeometry(s, 10, 8), _lam(0xe8762a, rand() < 0.4 ? 0xff8a2a : 0), 0, s * 0.85, 0);
+      body.scale.y = 0.8;
+      add(new THREE.CylinderGeometry(0.08, 0.12, 0.4, 5), _lam(0x4a6a2a), 0, s * 1.55, 0);
+      // 眼睛（三角形）
+      for (const sx of [-1, 1]) {
+        const eye = add(new THREE.ConeGeometry(0.16 * s, 0.3 * s, 3), _lam(0x1a0a00), sx * 0.35 * s, s * 0.95, s * 0.85);
+        eye.rotation.x = 0.2;
+      }
+      break;
+    }
+    case 'satellite': {
+      add(new THREE.BoxGeometry(0.8, 0.8, 1.2), _lam(0xc9c9d2), 0, 0, 0);
+      for (const sx of [-1, 1]) {
+        add(new THREE.BoxGeometry(2.2, 0.06, 0.9), _lam(0x2a4a9a, 0x2a4a9a), sx * 1.6, 0, 0);
+      }
+      add(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 4), _lam(0x8a8a92), 0, 0.7, 0);
+      add(new THREE.SphereGeometry(0.12, 6, 5), _lam(0xff5f5f, 0xff5f5f), 0, 1.1, 0);
+      break;
+    }
     case 'star':
       return null; // 星星另外大量生成
   }
@@ -700,6 +793,57 @@ function buildLandmark(type, rand) {
       }
       add(new THREE.ConeGeometry(4, 8, 8), _lam(pink), 0, 16, 0);
       add(new THREE.BoxGeometry(3.5, 5, 0.5), _lam(0xa87858), 0, 2.5, 6.2);
+      break;
+    }
+    case 'torii': {
+      // 紅色鳥居
+      const red = _lam(0xd0402a);
+      for (const sx of [-1, 1]) add(new THREE.CylinderGeometry(0.9, 1.1, 16, 8), red, sx * 7, 8, 0);
+      const top = add(new THREE.BoxGeometry(20, 1.6, 1.8), red, 0, 16.5, 0);
+      top.rotation.z = 0;
+      add(new THREE.BoxGeometry(17, 1.1, 1.4), red, 0, 13.8, 0);
+      add(new THREE.BoxGeometry(1.2, 2.0, 1.0), red, 0, 15.1, 0);
+      break;
+    }
+    case 'wreck': {
+      // 沉船（斜插在海底）
+      const hull = add(new THREE.CylinderGeometry(4.5, 6, 26, 8), _lam(0x6a4a32), 0, 6, 0);
+      hull.rotation.z = Math.PI / 2 - 0.35;
+      hull.scale.y = 0.7;
+      const mast = add(new THREE.CylinderGeometry(0.4, 0.5, 16, 6), _lam(0x5a3f2a), 2, 14, 0);
+      mast.rotation.z = -0.35;
+      add(new THREE.BoxGeometry(0.4, 5, 8), _lam(0x8a7a5f), 5.5, 16, 0);
+      // 破洞
+      add(new THREE.SphereGeometry(2, 8, 6), _lam(0x1a2a3a), -6, 4.5, 3.5);
+      break;
+    }
+    case 'mansion': {
+      // 鬼屋大宅：黑色大宅 + 發光窗
+      const dark = _lam(0x1f1a2a);
+      add(new THREE.BoxGeometry(22, 14, 12), dark, 0, 7, 0);
+      add(new THREE.ConeGeometry(9, 7, 4), _lam(0x14101f), 0, 17.5, 0);
+      for (const sx of [-1, 1]) {
+        add(new THREE.BoxGeometry(6, 18, 7), dark, sx * 11, 9, 0);
+        add(new THREE.ConeGeometry(4.5, 6, 4), _lam(0x14101f), sx * 11, 21, 0);
+      }
+      // 發光的窗戶
+      for (const [x, y] of [[-6, 8], [0, 8], [6, 8], [-6, 4], [6, 4], [-11, 12], [11, 12], [-11, 6], [11, 6]]) {
+        add(new THREE.BoxGeometry(1.6, 2.2, 0.3), _lam(0xffb84a, 0xff9a2a), x, y, 6.2);
+      }
+      add(new THREE.BoxGeometry(3.5, 5.5, 0.4), _lam(0x0a0a12), 0, 2.75, 6.2);
+      break;
+    }
+    case 'earth': {
+      // 藍色地球 + 月亮
+      add(new THREE.SphereGeometry(34, 16, 12), _lam(0x3b6fd6), 0, 0, 0);
+      const landMat = _lam(0x4a9a3f);
+      for (let k = 0; k < 7; k++) {
+        const a = rand() * Math.PI * 2, b = (rand() - 0.5) * 2.4;
+        const blob = add(new THREE.SphereGeometry(9 + rand() * 7, 8, 6), landMat,
+          Math.cos(a) * Math.cos(b) * 30, Math.sin(b) * 30, Math.sin(a) * Math.cos(b) * 30);
+        blob.scale.setScalar(0.55);
+      }
+      add(new THREE.SphereGeometry(9, 10, 8), _lam(0xd8d8e0), 75, 30, -20);
       break;
     }
   }

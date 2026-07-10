@@ -195,23 +195,38 @@ const UI = {
     this._mapStatic = track.minimapCanvas;
   },
 
+  // 只有內容變了才動 DOM（避免每幀觸發重排）
+  _setText(id, text) {
+    if (!this._hudCache) this._hudCache = {};
+    if (this._hudCache[id] === text) return;
+    this._hudCache[id] = text;
+    this.$(id).textContent = text;
+  },
+
+  _setHtml(id, html) {
+    if (!this._hudCache) this._hudCache = {};
+    if (this._hudCache[id] === html) return;
+    this._hudCache[id] = html;
+    this.$(id).innerHTML = html;
+  },
+
   updateHud(player, karts, raceTime, dt) {
     const $ = this.$.bind(this);
-    $('hud-rank').textContent = '第' + player.rank + '名';
-    $('hud-lap').textContent = '圈 ' + Math.min(Math.max(player.lap, 1), player.track.laps) + '/' + player.track.laps;
-    $('hud-time').textContent = formatTime(raceTime);
-    $('hud-coins').textContent = '🪙 ×' + player.coins;
-    $('hud-speed').textContent = Math.round(Math.abs(player.speed) * 3.4) + ' km/h';
+    this._setText('hud-rank', '第' + player.rank + '名');
+    this._setText('hud-lap', '圈 ' + Math.min(Math.max(player.lap, 1), player.track.laps) + '/' + player.track.laps);
+    this._setText('hud-time', formatTime(raceTime));
+    this._setText('hud-coins', '🪙 ×' + player.coins);
+    this._setText('hud-speed', Math.round(Math.abs(player.speed) * 3.4) + ' km/h');
 
-    const itemEl = $('hud-item');
     if (player.itemRoll > 0) {
       this._itemRollTimer += dt;
       const keys = Object.keys(ITEM_INFO);
-      itemEl.textContent = ITEM_INFO[keys[Math.floor(this._itemRollTimer * 12) % keys.length]].icon;
+      this._setHtml('hud-item', ITEM_INFO[keys[Math.floor(this._itemRollTimer * 12) % keys.length]].icon);
     } else if (player.item) {
-      itemEl.textContent = ITEM_INFO[player.item].icon;
+      const uses = player.itemUses > 1 ? `<span class="uses">×${player.itemUses}</span>` : '';
+      this._setHtml('hud-item', ITEM_INFO[player.item].icon + uses);
     } else {
-      itemEl.textContent = '';
+      this._setHtml('hud-item', '');
     }
 
     // 小地圖
@@ -231,6 +246,26 @@ const UI = {
         ctx.stroke();
       }
     }
+  },
+
+  // 被墨魚噴到：畫面糊一片墨漬，慢慢淡掉
+  showInk() {
+    const overlay = this.$('ink-overlay');
+    overlay.innerHTML = '';
+    for (let k = 0; k < 7; k++) {
+      const blob = document.createElement('div');
+      blob.className = 'ink-blob';
+      const size = 120 + Math.random() * 220;
+      blob.style.width = blob.style.height = size + 'px';
+      blob.style.left = Math.random() * 85 + '%';
+      blob.style.top = Math.random() * 75 + '%';
+      blob.style.transform = `rotate(${Math.random() * 360}deg) scale(${0.8 + Math.random() * 0.5})`;
+      overlay.appendChild(blob);
+    }
+    overlay.classList.add('show');
+    clearTimeout(this._inkTimer);
+    this._inkTimer = setTimeout(() => overlay.classList.remove('show'), 4200);
+    AudioSys.play('ink');
   },
 
   countdown(text) {

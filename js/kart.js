@@ -358,6 +358,7 @@ class Kart {
     this.finishTime = 0;
     this.coins = 0;
     this.item = null;
+    this.itemUses = 0;
     this.itemRoll = 0;
     this.boostTimer = 0;
     this.starTimer = 0;
@@ -366,6 +367,8 @@ class Kart {
     this.invulnTimer = 0;
     this.slipTimer = 0;
     this.slipPhase = 0;
+    this.inkTimer = 0;
+    this.bulletTimer = 0;
     this.driftDir = 0;
     this.driftCharge = 0;
     this.wasDrifting = false;
@@ -383,6 +386,7 @@ class Kart {
   get maxSpeed() {
     let m = this.baseMax * (1 + Math.min(this.coins, 10) * 0.008);
     if (this.starTimer > 0) m *= 1.22;
+    if (this.bulletTimer > 0) m *= 1.55;
     if (this.shrinkTimer > 0) m *= 0.72;
     if (!this.isPlayer) m *= this.aiSkill * this.rubber;
     return m;
@@ -394,7 +398,7 @@ class Kart {
   }
 
   spinOut() {
-    if (this.starTimer > 0 || this.invulnTimer > 0 || this.spinTimer > 0 || this.boostTimer > 0.8) return false;
+    if (this.starTimer > 0 || this.bulletTimer > 0 || this.invulnTimer > 0 || this.spinTimer > 0 || this.boostTimer > 0.8) return false;
     this.spinTimer = 1.1;
     this.speed *= 0.35;
     this.coins = Math.max(0, this.coins - 3);
@@ -430,13 +434,14 @@ class Kart {
     const track = this.track, th = track.theme;
 
     // 計時器
-    for (const t of ['boostTimer', 'starTimer', 'shrinkTimer', 'spinTimer', 'invulnTimer', 'slipTimer']) {
+    for (const t of ['boostTimer', 'starTimer', 'shrinkTimer', 'spinTimer', 'invulnTimer', 'slipTimer', 'inkTimer', 'bulletTimer']) {
       if (this[t] > 0) this[t] = Math.max(0, this[t] - dt);
     }
     if (this.itemRoll > 0) {
       this.itemRoll -= dt;
       if (this.itemRoll <= 0) {
         this.item = world.items.rollItem(this);
+        this.itemUses = ITEM_USES[this.item] || 1;
         if (this.isPlayer) AudioSys.play('item');
       }
     }
@@ -461,7 +466,7 @@ class Kart {
     let turn = 0;
     const canDrift = this.grounded && this.speed > 13 && !spinning;
     if (input.drift && !this.wasDrifting && this.grounded && !spinning) {
-      this.vy = 5; this.grounded = false; // 起跳
+      this.vy = th.floaty ? 6 : 5; this.grounded = false; // 起跳（水中跳更高）
       if (this.isPlayer) AudioSys.play('hop');
     }
     if (input.drift && canDrift) {
@@ -521,7 +526,7 @@ class Kart {
     const groundY = track.heightAt(this.pos, this.sampleIdx);
     this._groundY = groundY;
     if (!this.grounded) {
-      this.vy -= 24 * dt;
+      this.vy -= (th.floaty ? 10 : 24) * dt; // 水中浮力：落下飄飄的
       this.pos.y += this.vy * dt;
       if (this.pos.y <= groundY) { this.pos.y = groundY; this.vy = 0; this.grounded = true; }
     } else {
@@ -611,16 +616,18 @@ class Kart {
         if (show) sp.material.color.setHex(this.driftCharge > 2.2 ? 0xff8822 : 0x55aaff);
       }
     }
-    // 星星無敵：車身彩虹閃爍
+    // 星星無敵：車身彩虹閃爍；火箭衝刺：橘紅熾熱
     const bodyMat = this.mesh.userData.bodyMat;
     if (bodyMat) {
       if (this.starTimer > 0) {
-        bodyMat.emissive = bodyMat.emissive || new THREE.Color();
         bodyMat.color.setHSL((performance.now() * 0.002) % 1, 0.9, 0.6);
         bodyMat.emissive.copy(bodyMat.color).multiplyScalar(0.4);
+      } else if (this.bulletTimer > 0) {
+        bodyMat.color.setHex(0xff8a2a);
+        bodyMat.emissive.setHex(0xff5a1a);
       } else {
         bodyMat.color.setHex(this.char.body);
-        if (bodyMat.emissive) bodyMat.emissive.setHex(0x000000);
+        bodyMat.emissive.setHex(0x000000);
       }
     }
   }

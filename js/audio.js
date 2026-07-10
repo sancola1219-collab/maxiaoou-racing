@@ -63,6 +63,10 @@ const AudioSys = {
         [660, 784, 988, 1319].forEach((f, i) => setTimeout(() => this._beep(f, 0.12, 'square', 0.14), i * 90));
         break;
       case 'lightning': this._beep(1600, 0.5, 'sawtooth', 0.2, 100); break;
+      case 'bomb': this._beep(70, 0.6, 'sawtooth', 0.3, 30); this._beep(200, 0.3, 'square', 0.2, 50); break;
+      case 'bomb-throw': this._beep(300, 0.2, 'triangle', 0.15, 150); break;
+      case 'ink': this._beep(220, 0.35, 'sine', 0.2, 70); break;
+      case 'bullet': this._beep(110, 0.9, 'sawtooth', 0.22, 620); break;
       case 'count': this._beep(440, 0.25, 'square', 0.2); break;
       case 'go': this._beep(880, 0.5, 'square', 0.25); break;
       case 'finish':

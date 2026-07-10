@@ -102,6 +102,22 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   font-size: 44px;
 }
+#hud-item .uses {
+  position: absolute; right: -6px; bottom: -8px;
+  font-size: 18px; font-weight: 900; color: #ffd54f;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
+}
+
+/* 墨魚墨漬 */
+#ink-overlay {
+  position: fixed; inset: 0; z-index: 13; pointer-events: none;
+  opacity: 0; transition: opacity 1.6s ease-in;
+}
+#ink-overlay.show { opacity: 1; transition: opacity 0.15s; }
+.ink-blob {
+  position: absolute; border-radius: 45% 55% 50% 60% / 55% 45% 60% 50%;
+  background: radial-gradient(closest-side, rgba(10,10,18,0.96) 55%, rgba(10,10,18,0.75) 75%, transparent 100%);
+}
 #hud-coins {
   position: absolute; left: 20px; top: 76px;
   font-size: 20px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);

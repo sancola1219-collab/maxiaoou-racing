@@ -55,14 +55,29 @@ function computeAiInput(kart, world, dt) {
       // 依道具挑時機：龜殼在直線用、香蕉隨便丟、加速類立刻用
       const straight = curve < 0.3;
       const it = kart.item;
-      if (it === 'mushroom' || it === 'star' || it === 'lightning' || it === 'coin' || it === 'banana'
-        || ((it === 'green' || it === 'red') && straight)) {
+      const anytime = ['mushroom', 'mushroom3', 'goldmush', 'star', 'lightning', 'coin',
+        'banana', 'fakebox', 'ink', 'bomb', 'bullet'];
+      if (anytime.includes(it) || ((it === 'green' || it === 'red' || it === 'blue') && straight)) {
         input.item = true;
-        kart.aiItemTimer = 1.5 + Math.random() * 3;
+        // 連發道具（三重蘑菇/黃金蘑菇）間隔短一點
+        kart.aiItemTimer = ITEM_USES[it] ? 0.5 + Math.random() * 0.7 : 1.5 + Math.random() * 3;
       }
     }
   } else {
     kart.aiItemTimer = 1 + Math.random() * 2.5;
+  }
+
+  // 被墨魚噴到：看不清楚，方向亂飄
+  if (kart.inkTimer > 0) {
+    input.steer += Math.sin(world.raceTime * 7 + kart.index * 2.1) * 0.5;
+    input.steer = Math.max(-1, Math.min(1, input.steer));
+  }
+  // 火箭衝刺中：全油門直衝，不甩尾
+  if (kart.bulletTimer > 0) {
+    input.accel = true;
+    input.brake = false;
+    input.drift = false;
+    kart.aiDrift = false;
   }
 
   // ---------- 橡皮筋：落後玩家加速、領先玩家放水 ----------

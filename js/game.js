@@ -115,6 +115,7 @@ const Game = {
       karts.push(player);
       this.ttMushrooms = 2;
       karts[0].item = 'mushroom';
+      karts[0].itemUses = 1;
     } else {
       const aiChars = CHARACTERS.filter(c => c.id !== charId);
       for (let i = 0; i < 7; i++) karts.push(new Kart(aiChars[i], track, i, false));
@@ -233,10 +234,17 @@ const Game = {
         this.prevItemKey = input.item;
         if (itemPressed && kart.item && kart.itemRoll <= 0) {
           world.items.useItem(kart);
-          if (this.mode === 'tt' && this.ttMushrooms > 0) {
+          if (this.mode === 'tt' && !kart.item && this.ttMushrooms > 0) {
             this.ttMushrooms--;
             kart.item = 'mushroom';
+            kart.itemUses = 1;
           }
+        }
+        // 火箭衝刺：自動駕駛
+        if (kart.bulletTimer > 0) {
+          const auto = computeAiInput(kart, world, dt);
+          auto.item = false;
+          input = auto;
         }
       } else {
         input = computeAiInput(kart, world, dt);
@@ -261,8 +269,10 @@ const Game = {
           a.pos.z += nz * overlap * (b.weight / total);
           b.pos.x -= nx * overlap * (a.weight / total);
           b.pos.z -= nz * overlap * (a.weight / total);
-          if (a.starTimer > 0 && b.starTimer <= 0) b.spinOut();
-          else if (b.starTimer > 0 && a.starTimer <= 0) a.spinOut();
+          const aPower = a.starTimer > 0 || a.bulletTimer > 0;
+          const bPower = b.starTimer > 0 || b.bulletTimer > 0;
+          if (aPower && !bPower) b.spinOut();
+          else if (bPower && !aPower) a.spinOut();
           if ((a.isPlayer || b.isPlayer) && Math.abs(a.speed - b.speed) > 5) AudioSys.play('bump');
         }
       }
@@ -329,6 +339,15 @@ const Game = {
       player.pos.y + 1.6,
       player.pos.z + fwd.z * 6
     );
+    // 加速時視野變廣（速度感）
+    const boosting = player.boostTimer > 0 || player.bulletTimer > 0 || player.starTimer > 0;
+    if (this._fov === undefined) this._fov = 65;
+    const targetFov = boosting ? 76 : 65;
+    this._fov += (targetFov - this._fov) * Math.min(1, dt * 6);
+    if (Math.abs(cam.fov - this._fov) > 0.05) {
+      cam.fov = this._fov;
+      cam.updateProjectionMatrix();
+    }
   },
 
   render() {
@@ -430,6 +449,7 @@ function disposeScene(scene) {
     if (obj.material) {
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
       for (const m of mats) {
+        if (m.userData && m.userData.cached) continue; // 共用快取材質不銷毀（見 track.js _lam）
         if (m.map) m.map.dispose();
         m.dispose();
       }

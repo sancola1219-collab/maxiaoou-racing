@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>馬小歐賽車 🏎️</title>
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
@@ -12,7 +12,7 @@
   <!-- 標題畫面 -->
   <div class="screen" id="screen-title">
     <h1>馬小歐賽車</h1>
-    <div class="subtitle">🏎️ 16 條賽道 × 4 大盃賽 × 8 位車手 🏁</div>
+    <div class="subtitle">🏎️ 24 條賽道 × 6 大盃賽 × 8 位車手 × 14 種道具 🏁</div>
     <button class="btn" id="btn-start">開始遊戲</button>
     <div class="subtitle" style="font-size:14px">鍵盤：方向鍵/WASD 駕駛 ｜ Shift/空白鍵 甩尾 ｜ Ctrl/E 道具</div>
   </div>
@@ -40,7 +40,7 @@
       <tr><td>暫停</td><td>Esc</td></tr>
       <tr><td>靜音</td><td>M</td></tr>
     </table>
-    <div class="subtitle">💡 甩尾時火花變藍色→橘色，放開獲得更強的噴射！<br>💡 金幣越多極速越快（上限 10 枚），被攻擊會掉 3 枚</div>
+    <div class="subtitle">💡 甩尾時火花變藍色→橘色，放開獲得更強的噴射！<br>💡 金幣越多極速越快（上限 10 枚），被攻擊會掉 3 枚<br>💡 新道具：💣炸彈範圍爆炸、💙藍龜殼追第1名、🦑墨魚糊對手視線、🚀火箭自動衝刺、❓假道具箱陷阱</div>
     <button class="btn small secondary" id="btn-help-back">返回</button>
   </div>
 
@@ -107,6 +107,7 @@
   </div>
   <div id="countdown" class="hidden"></div>
   <div id="announce"></div>
+  <div id="ink-overlay"></div>
 
   <!-- 觸控按鈕 -->
   <div id="touch-controls" class="hidden">
@@ -120,15 +121,15 @@
   <button class="corner-btn" id="pause-btn">⏸</button>
   <button class="corner-btn" id="mute-btn">🔊</button>
 
-  <script src="js/three.min.js?v=2"></script>
-  <script src="js/data/tracks.js?v=2"></script>
-  <script src="js/track.js?v=2"></script>
-  <script src="js/audio.js?v=2"></script>
-  <script src="js/kart.js?v=2"></script>
-  <script src="js/ai.js?v=2"></script>
-  <script src="js/items.js?v=2"></script>
-  <script src="js/hazards.js?v=2"></script>
-  <script src="js/ui.js?v=2"></script>
-  <script src="js/game.js?v=2"></script>
+  <script src="js/three.min.js?v=3"></script>
+  <script src="js/data/tracks.js?v=3"></script>
+  <script src="js/track.js?v=3"></script>
+  <script src="js/audio.js?v=3"></script>
+  <script src="js/kart.js?v=3"></script>
+  <script src="js/ai.js?v=3"></script>
+  <script src="js/items.js?v=3"></script>
+  <script src="js/hazards.js?v=3"></script>
+  <script src="js/ui.js?v=3"></script>
+  <script src="js/game.js?v=3"></script>
 </body>
 </html>

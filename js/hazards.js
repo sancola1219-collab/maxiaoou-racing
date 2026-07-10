@@ -7,9 +7,10 @@
 const HAZARD_RADIUS = {
   goomba: 1.2, chicken: 1.1, crab: 1.2, scorpion: 1.2, hedgehog: 1.2,
   ghost: 1.4, gumball: 1.2, bird: 1.2, star: 1.5,
-  tumbleweed: 1.5, haybale: 1.7, boulder: 1.8, snowball: 1.8,
+  frog: 1.1, fish: 1.2, bat: 1.2,
+  tumbleweed: 1.5, haybale: 1.7, boulder: 1.8, snowball: 1.8, asteroid: 1.8,
   forklift: 2.0, taxi: 2.2,
-  lava: 1.8, mud: 3.2, oil: 3.0, poison: 3.0, syrup: 3.0,
+  lava: 1.8, mud: 3.2, oil: 3.0, poison: 3.0, syrup: 3.0, petals: 3.0,
 };
 
 class HazardWorld {
@@ -113,8 +114,10 @@ class HazardWorld {
         const t = this.time * hz.speed + hz.phase;
         const lat = Math.sin(t) * hz.ampl;
         hz.pos.copy(s.pos).addScaledVector(s.left, lat);
-        const bounce = hz.model === 'gumball' || hz.model === 'bird' ? Math.abs(Math.sin(t * 4)) * 1.2 : Math.abs(Math.sin(t * 6)) * 0.15;
-        hz.pos.y = s.pos.y + (hz.model === 'ghost' ? 0.6 + Math.sin(t * 2) * 0.3 : 0) + bounce;
+        const bounce = hz.model === 'gumball' || hz.model === 'bird' || hz.model === 'frog' ? Math.abs(Math.sin(t * 4)) * 1.2 : Math.abs(Math.sin(t * 6)) * 0.15;
+        const hover = (hz.model === 'ghost' || hz.model === 'bat') ? 0.6 + Math.sin(t * 2) * 0.3
+          : hz.model === 'fish' ? 0.3 + Math.sin(t * 3) * 0.25 : 0;
+        hz.pos.y = s.pos.y + hover + bounce;
         hz.mesh.position.copy(hz.pos);
         // 面向移動方向
         const moving = Math.cos(t);
@@ -313,6 +316,62 @@ function buildHazardModel(model, rand) {
       add(new THREE.DodecahedronGeometry(1.5, 0), _lam(0x8a8078), 0, 1.4, 0);
       break;
     }
+    case 'asteroid': {
+      add(new THREE.DodecahedronGeometry(1.5, 0), _lam(0x6a6a78), 0, 1.4, 0);
+      add(new THREE.DodecahedronGeometry(0.5, 0), _lam(0x5a5a68), 0.9, 2.0, 0.4);
+      // 隕石微微發紅光
+      add(new THREE.SphereGeometry(0.25, 6, 5), _lam(0xff6a2a, 0xff5a1a), -0.7, 1.0, 0.9);
+      break;
+    }
+    case 'frog': {
+      add(new THREE.SphereGeometry(0.65, 9, 7), _lam(0x4aa03f), 0, 0.6, 0).scale.set(1, 0.8, 1.1);
+      add(new THREE.SphereGeometry(0.4, 8, 6), _lam(0x5ab04a), 0, 1.05, 0.35);
+      // 凸眼睛
+      for (const sx of [-1, 1]) {
+        add(new THREE.SphereGeometry(0.17, 7, 6), _lam(0xffffff), sx * 0.26, 1.35, 0.45);
+        add(new THREE.SphereGeometry(0.08, 5, 4), _lam(0x1a1a1a), sx * 0.26, 1.38, 0.58);
+      }
+      // 白肚 + 後腿
+      add(new THREE.SphereGeometry(0.4, 7, 6), _lam(0xd8f0c0), 0, 0.5, 0.4).scale.set(0.9, 0.7, 0.5);
+      for (const sx of [-1, 1]) {
+        add(new THREE.SphereGeometry(0.28, 6, 5), _lam(0x3f8f35), sx * 0.6, 0.35, -0.35).scale.set(0.8, 0.6, 1.3);
+      }
+      break;
+    }
+    case 'fish': {
+      const c = [0xff8a3d, 0x5fb8e8, 0xffd54f][Math.floor(rand() * 3)];
+      const body = add(new THREE.SphereGeometry(0.7, 10, 8), _lam(c), 0, 1.2, 0);
+      body.scale.set(0.7, 0.9, 1.3);
+      // 尾鰭 + 背鰭
+      const tail = add(new THREE.ConeGeometry(0.45, 0.7, 4), _lam(c), 0, 1.2, -1.05);
+      tail.rotation.x = -Math.PI / 2;
+      tail.scale.x = 0.3;
+      const fin = add(new THREE.ConeGeometry(0.3, 0.5, 4), _lam(c), 0, 1.85, -0.2);
+      fin.scale.x = 0.3;
+      // 嘴唇 + 眼睛
+      add(new THREE.SphereGeometry(0.14, 6, 5), _lam(0xe07a8a), 0, 1.1, 0.85).scale.set(1.3, 0.6, 0.6);
+      for (const sx of [-1, 1]) {
+        add(new THREE.SphereGeometry(0.12, 6, 5), _lam(0xffffff), sx * 0.3, 1.4, 0.55);
+        add(new THREE.SphereGeometry(0.06, 5, 4), _lam(0x1a1a1a), sx * 0.3, 1.42, 0.65);
+      }
+      break;
+    }
+    case 'bat': {
+      add(new THREE.SphereGeometry(0.45, 9, 7), _lam(0x3a2a4a), 0, 1.6, 0);
+      // 翅膀
+      for (const sx of [-1, 1]) {
+        const wing = add(new THREE.ConeGeometry(0.55, 1.2, 3), _lam(0x2a1a3a), sx * 0.8, 1.65, 0);
+        wing.rotation.z = sx * Math.PI / 2;
+        wing.scale.z = 0.25;
+      }
+      // 耳朵 + 紅眼睛 + 獠牙
+      for (const sx of [-1, 1]) {
+        add(new THREE.ConeGeometry(0.1, 0.3, 4), _lam(0x3a2a4a), sx * 0.2, 2.05, 0);
+        add(new THREE.SphereGeometry(0.08, 5, 4), _lam(0xff3a3a, 0xff2a2a), sx * 0.16, 1.65, 0.4);
+        add(new THREE.ConeGeometry(0.04, 0.12, 4), _lam(0xffffff), sx * 0.1, 1.42, 0.4).rotation.x = Math.PI;
+      }
+      break;
+    }
     case 'snowball': {
       add(new THREE.SphereGeometry(1.6, 12, 10), _lam(0xf8fcff), 0, 1.5, 0);
       break;
@@ -364,6 +423,16 @@ function buildHazardModel(model, rand) {
       const p = add(new THREE.CircleGeometry(2.8, 12), new THREE.MeshLambertMaterial({ color: 0xe05f9a, transparent: true, opacity: 0.8 }), 0, 0, 0);
       p.rotation.x = -Math.PI / 2;
       p.scale.x = 1.2;
+      break;
+    }
+    case 'petals': {
+      // 櫻花花瓣堆
+      const p = add(new THREE.CircleGeometry(2.8, 12), new THREE.MeshLambertMaterial({ color: 0xffb0d8, transparent: true, opacity: 0.75 }), 0, 0, 0);
+      p.rotation.x = -Math.PI / 2;
+      for (let k = 0; k < 6; k++) {
+        const petal = add(new THREE.CircleGeometry(0.25, 6), _lam(0xff8ac8), rand() * 4 - 2, 0.02, rand() * 4 - 2);
+        petal.rotation.x = -Math.PI / 2;
+      }
       break;
     }
   }
