@@ -87,6 +87,32 @@ const THEMES = {
     hazards: [{ type: 'roller', model: 'asteroid', count: 3 }] },
 };
 
+// 每個主題的天氣池：每場比賽隨機挑一種（重複的權重高 → 較常出現）
+// 天氣種類與效果定義在 weather.js 的 WEATHER_INFO；新增天氣改那裡
+const THEME_WEATHER = {
+  grass:   ['clear', 'clear', 'rain'],
+  beach:   ['clear', 'clear', 'clear'],
+  farm:    ['clear', 'clear', 'rain', 'fog'],
+  hills:   ['clear', 'clear', 'rain', 'fog'],
+  desert:  ['clear', 'clear', 'sand'],
+  forest:  ['clear', 'clear', 'rain', 'fog'],
+  harbor:  ['clear', 'clear', 'rain', 'fog'],
+  canyon:  ['clear', 'clear', 'sand'],
+  snow:    ['snow', 'snow', 'blizzard'],
+  swamp:   ['fog', 'fog', 'storm'],
+  lava:    ['ash', 'ash', 'clear'],
+  sky:     ['clear', 'clear'],
+  city:    ['clear', 'rain', 'storm'],
+  candy:   ['clear', 'clear'],
+  ice:     ['snow', 'snow', 'clear', 'blizzard'],
+  rainbow: ['clear'],
+  sakura:  ['petals', 'petals', 'clear'],
+  underwater: ['bubbles'],
+  haunted: ['fog', 'fog', 'storm'],
+  space:   ['clear'],
+};
+for (const id in THEMES) THEMES[id].weather = THEME_WEATHER[id] || ['clear'];
+
 const TRACKS = [
   // ---------- 蘑菇盃 ----------
   { id: 't01', name: '綠茵草原', theme: 'grass', width: 18, laps: 3, points: [

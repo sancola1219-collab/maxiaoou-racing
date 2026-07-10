@@ -58,6 +58,11 @@ const UI = {
     document.body.classList.toggle('racing', on);
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     this.$('touch-controls').classList.toggle('hidden', !(on && isTouch));
+    if (!on) {
+      this.$('ink-overlay').classList.remove('show'); // 退賽清掉殘留墨漬
+      this.$('speedlines').classList.remove('show');
+      this._inkShown = false; this._fastShown = false;
+    }
   },
 
   // ---------- 選單生成 ----------
@@ -229,6 +234,19 @@ const UI = {
       this._setHtml('hud-item', '');
     }
 
+    // 墨漬跟著模擬時間走（暫停凍結、恢復繼續）；inkTimer 歸零就淡掉
+    if (this._inkShown !== (player.inkTimer > 0)) {
+      this._inkShown = player.inkTimer > 0;
+      this.$('ink-overlay').classList.toggle('show', this._inkShown);
+    }
+
+    // 加速速度線（噴射/火箭/星星時）
+    const fast = player.boostTimer > 0 || player.bulletTimer > 0 || player.starTimer > 0;
+    if (this._fastShown !== fast) {
+      this._fastShown = fast;
+      this.$('speedlines').classList.toggle('show', fast);
+    }
+
     // 小地圖
     if (this._mapStatic) {
       const canvas = $('minimap');
@@ -248,7 +266,8 @@ const UI = {
     }
   },
 
-  // 被墨魚噴到：畫面糊一片墨漬，慢慢淡掉
+  // 被墨魚噴到：畫面糊一片墨漬。只負責畫墨漬 blob，顯示/隱藏由 updateHud 依模擬時間 inkTimer 驅動
+  // （不用牆鐘 setTimeout：暫停時凍結、退選單時 setRacing(false) 會清掉；音效由 items.js 播）
   showInk() {
     const overlay = this.$('ink-overlay');
     overlay.innerHTML = '';
@@ -263,9 +282,17 @@ const UI = {
       overlay.appendChild(blob);
     }
     overlay.classList.add('show');
-    clearTimeout(this._inkTimer);
-    this._inkTimer = setTimeout(() => overlay.classList.remove('show'), 4200);
-    AudioSys.play('ink');
+  },
+
+  // 全螢幕閃白（雷暴閃電 / 閃電道具）
+  flashScreen(intensity, color) {
+    const el = this.$('flash-overlay');
+    el.style.background = color || '#ffffff';
+    el.style.transition = 'none';
+    el.style.opacity = String(Math.min(0.9, intensity));
+    void el.offsetWidth; // 強制 reflow
+    el.style.transition = 'opacity 0.4s ease-out';
+    el.style.opacity = '0';
   },
 
   countdown(text) {

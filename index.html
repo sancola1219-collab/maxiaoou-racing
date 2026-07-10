@@ -12,7 +12,7 @@
   <!-- 標題畫面 -->
   <div class="screen" id="screen-title">
     <h1>馬小歐賽車</h1>
-    <div class="subtitle">🏎️ 24 條賽道 × 6 大盃賽 × 8 位車手 × 14 種道具 🏁</div>
+    <div class="subtitle">🏎️ 24 條賽道 × 6 大盃賽 × 8 位車手 × 14 種道具 × 動態天氣 🏁</div>
     <button class="btn" id="btn-start">開始遊戲</button>
     <div class="subtitle" style="font-size:14px">鍵盤：方向鍵/WASD 駕駛 ｜ Shift/空白鍵 甩尾 ｜ Ctrl/E 道具</div>
   </div>
@@ -108,6 +108,8 @@
   <div id="countdown" class="hidden"></div>
   <div id="announce"></div>
   <div id="ink-overlay"></div>
+  <div id="speedlines"></div>
+  <div id="flash-overlay"></div>
 
   <!-- 觸控按鈕 -->
   <div id="touch-controls" class="hidden">
@@ -121,15 +123,17 @@
   <button class="corner-btn" id="pause-btn">⏸</button>
   <button class="corner-btn" id="mute-btn">🔊</button>
 
-  <script src="js/three.min.js?v=3"></script>
-  <script src="js/data/tracks.js?v=3"></script>
-  <script src="js/track.js?v=3"></script>
-  <script src="js/audio.js?v=3"></script>
-  <script src="js/kart.js?v=3"></script>
-  <script src="js/ai.js?v=3"></script>
-  <script src="js/items.js?v=3"></script>
-  <script src="js/hazards.js?v=3"></script>
-  <script src="js/ui.js?v=3"></script>
-  <script src="js/game.js?v=3"></script>
+  <script src="js/three.min.js?v=4"></script>
+  <script src="js/data/tracks.js?v=4"></script>
+  <script src="js/track.js?v=4"></script>
+  <script src="js/audio.js?v=4"></script>
+  <script src="js/kart.js?v=4"></script>
+  <script src="js/ai.js?v=4"></script>
+  <script src="js/items.js?v=4"></script>
+  <script src="js/hazards.js?v=4"></script>
+  <script src="js/weather.js?v=4"></script>
+  <script src="js/effects.js?v=4"></script>
+  <script src="js/ui.js?v=4"></script>
+  <script src="js/game.js?v=4"></script>
 </body>
 </html>

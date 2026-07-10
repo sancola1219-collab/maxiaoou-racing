@@ -410,7 +410,7 @@ class Kart {
 
   // 打滑（油漬/泥巴等地面陷阱）：方向亂晃 + 減速
   applySlip() {
-    if (this.starTimer > 0 || this.boostTimer > 0.3) return;
+    if (this.starTimer > 0 || this.bulletTimer > 0 || this.boostTimer > 0.3) return; // 星星/火箭免疫
     if (this.slipTimer <= 0) {
       this.slipPhase = 0;
       if (this.isPlayer) AudioSys.play('bump');
@@ -490,7 +490,9 @@ class Kart {
       turn = steer * this.steerRate * spdFactor;
     }
     this.wasDrifting = input.drift;
-    this.heading += turn * dt * (th.grip < 0.8 ? 0.85 : 1);
+    // 有效抓地力 = 主題抓地力 × 天氣抓地力（雨/雪/暴風雪更滑）
+    const grip = th.grip * (world.weather ? world.weather.gripMul : 1);
+    this.heading += turn * dt * (grip < 0.8 ? 0.85 : 1);
     // 打滑：方向亂晃
     if (this.slipTimer > 0) {
       this.slipPhase += dt * 16;

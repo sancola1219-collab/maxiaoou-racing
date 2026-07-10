@@ -27,6 +27,7 @@
 | v1 | 2026-07-10 | 初版：16 賽道×4盃賽×8車手、盃賽/單場/計時三模式、7 種道具、AI+橡皮筋、甩尾噴射、金幣、觸控、WebAudio 合成音效。當日修復 AI 甩尾鎖死事故（見紅線 3） |
 | v2 | 2026-07-10 | 8 位角色專屬造型（帽/鬍/皇冠/龜殼/恐龍嘴…全員有眼睛）、車體細化+假陰影、場景豐富化（每主題 3~4 種擺設+地標+山脈+雲+氣球）、新增 hazards.js 陷阱系統（5 行為×20 模型）、角色選單 3D 縮圖、道具箱?貼圖 |
 | v3 | 2026-07-11 | 賽道 16→24（月亮盃🌙 t17-20、王冠盃👑 t21-24）、新主題 4（櫻花/水底 floaty 浮力/鬼宅/太空）+ 對應地標（鳥居/沉船/鬼屋/地球）與陷阱（青蛙/魚/蝙蝠/隕石/花瓣）；道具 7→14：三重蘑菇×3、黃金蘑菇×6（HUD 顯示剩餘次數）、藍龜殼（追第 1 名爆炸）、假道具箱、炸彈（範圍爆炸）、墨魚（前方對手畫面墨漬+AI 亂飄）、火箭衝刺（3.5 秒自駕無敵）；加速時 FOV 65→76 速度感、材質快取 _lam（disposeScene 跳過 cached）、HUD DOM 快取防每幀重排 |
+| v4 | 2026-07-11 | **先修 v3 的 6+1 個道具/特效 bug**（多代理審查抓出：藍龜殼幽靈殼→改鎖進行中最前車且逾時爆炸、炸彈自炸→_explode 加 owner/grace、第1名 ink 空砲→移出機率表、閃電/打滑漏了火箭免疫、火箭鎖道具死碼→useItem 加 bulletTimer 守衛、墨漬牆鐘脫鉤→改 inkTimer 驅動）。**新增天氣系統** weather.js（雨/雷暴/雪/暴風雪/濃霧/沙塵/火山灰/落櫻/氣泡，每場從 THEME_WEATHER 隨機挑；影響抓地力 gripMul + 霧能見度 + 雷暴閃電）。**特效升級** effects.js 粒子池（噴射火焰/火箭尾焰/甩尾煙/星星彩虹拖尾/爆炸爆裂）+ 速度線 + 閃電閃白 overlay。實測 75fps、24 賽道全過（含強制暴風雪最低抓地力）、無記憶體漏 |
 
 ## 待辦池（使用者沒點頭前不要自作主張做大的）
 
@@ -38,7 +39,7 @@
 ## 紅線（改一處要同步 CLAUDE.md / AGENTS.md / 本檔）
 
 1. **不要把 three.js 升到 r150+**。r150 起官方移除了 UMD 版 `three.min.js`，只剩 ES module；本專案用 `<script>` 直接載入（為了 file:// 離線可玩），升級會整個炸掉。真實事故：初建時先查過才選 r149。
-2. **改版必調 `?v=N` 快取號**（index.html 內全部 11 個標籤一起 +1，目前 v=3）。GitHub Pages 快取很兇，之前專案發生過改了 JS 但玩家拿到舊檔。
+2. **改版必調 `?v=N` 快取號**（index.html 內全部 13 個標籤一起 +1，目前 v=4）。GitHub Pages 快取很兇，之前專案發生過改了 JS 但玩家拿到舊檔。
 3. **AI 的狀態機必須有多重退出條件**。真實事故：AI 甩尾原本只靠「彎度 < 0.22 才放開」，在連續彎道永不成立 → AI 方向鎖死繞圈衝出賽道，整場比賽卡在第 1 圈。現在退出條件有四個（彎道結束/太慢/轉向打架/超時 3 秒），改 AI 時不要刪。
 4. **純 vanilla JS 零依賴**（three.min.js 是唯一例外且已本地化）、拒絕照片貼圖（美術全部程序化幾何 + Canvas 貼圖）。
 
@@ -52,9 +53,11 @@
 | `js/ai.js` | `computeAiInput`：前瞻導航、彎道減速、甩尾、橡皮筋（±7%~16%）、道具時機、卡住倒車 |
 | `js/items.js` | ItemWorld：道具箱(?貼圖)/金幣/14 種道具（香蕉/龜殼綠紅藍/蘑菇×3種/星星/閃電/炸彈/墨魚/火箭/假箱）；`ITEM_TABLES` 是名次加權抽選表；`ITEM_USES` 是多次使用道具的次數 |
 | `js/hazards.js` | HazardWorld：賽道陷阱。5 種行為（walker 橫越/roller 滾動/geyser 噴發/patch 打滑/car NPC車）× 25 種模型；設定寫在 THEMES[].hazards |
+| `js/weather.js` | Weather 類：天氣粒子（雨/雪/落櫻/沙塵/火山灰/氣泡=Points，雨=LineSegments）+ 雷暴閃電 + 霧能見度 + 抓地力（`gripMul`）。`WEATHER_INFO` 是效果表，`THEME_WEATHER`（在 tracks.js）是每主題天氣池，`pickWeather()` 隨機挑 |
+| `js/effects.js` | EffectsWorld 類：單一 Points 環狀粒子池（900 顆，AdditiveBlending，一個 draw call）。每幀讀車輛狀態產生噴射火焰/甩尾煙/星星拖尾；`burst()` 給爆炸用（items 透過 `items.fx` 呼叫） |
 | `js/audio.js` | AudioSys：WebAudio 全合成（無音檔）；音效/引擎聲/BGM；M 鍵或按鈕靜音（localStorage `msq-muted`） |
-| `js/ui.js` | UI：畫面切換、選單生成（角色/盃賽/賽道卡片）、HUD、小地圖繪製、觸控按鈕 |
-| `js/game.js` | Game：固定步長主迴圈、比賽流程（倒數→比賽→結算）、GP 積分、攝影機、排名、`GameTest` 測試掛鉤 |
+| `js/ui.js` | UI：畫面切換、選單生成（角色/盃賽/賽道卡片）、HUD、小地圖繪製、觸控按鈕、墨漬/閃白/速度線 overlay。HUD 用 `_setText/_setHtml` 快取避免每幀重繪 |
+| `js/game.js` | Game：固定步長主迴圈、比賽流程（倒數→比賽→結算）、GP 積分、攝影機（加速拉 FOV）、排名、`GameTest` 測試掛鉤；`Game.forcedWeather` 可強制天氣測試 |
 
 ### 賽道表示法（核心概念）
 控制點 `[x, z, 高度]` → `THREE.CatmullRomCurve3`（閉合）→ 每 ~2.2m 取樣一點（N≈400-700）。
@@ -66,11 +69,18 @@
 2. 加進某個 `CUPS` 的 `tracks`（或新增盃賽）
 3. `?v=N` +1，用下面的測試法跑一遍
 
-### 加陷阱/裝飾/地標的步驟
+### 加陷阱/裝飾/地標/天氣/道具/特效的步驟
 - 陷阱：THEMES 某主題的 `hazards` 加 `{type, model, count}`；新模型在 hazards.js `buildHazardModel` 加 case + `HAZARD_RADIUS` 加半徑
 - 裝飾：THEMES 的 `decos` 加 `[類型, 數量]`；新模型在 track.js `buildDecoration` 加 case
-- 地標：THEMES 的 `landmark`；模型在 track.js `buildLandmark`（volcano 放賽道中心、planet 放天上，其餘放路邊）
+- 地標：THEMES 的 `landmark`；模型在 track.js `buildLandmark`（volcano 放賽道中心、planet/earth 放天上，其餘放路邊）
 - 角色造型都在 kart.js `buildDriver`（每人一個 case；車體/眼睛/手臂是共用件）
+- 天氣：weather.js `WEATHER_INFO` 加效果（grip/vis/tint）+ `_build()` 加粒子；tracks.js `THEME_WEATHER` 把它加進某主題的天氣池
+- 道具：items.js `ITEM_INFO` 加 icon + `ITEM_TABLES` 加權重（每列權重要湊整、每個 key 必須在 ITEM_INFO）+ `useItem` 加 case；多次使用道具加進 `ITEM_USES`
+- 特效：effects.js `EffectsWorld.update` 加拖尾，或別的系統呼叫 `world.fx.burst()`
+
+### 材質快取地雷（track.js `_lam`）
+同色 Lambert 材質共用一份並標記 `userData.cached`；`disposeScene`（game.js）會**跳過**這些不銷毀。
+所以：(1) 絕不可對 `_lam` 回傳的材質改色（會污染所有共用它的物件）；(2) 天氣/特效的材質**沒**標 cached，換賽道時會正常銷毀。已驗證同賽道重建 6 次 geometry/texture 數穩定不漏。
 
 ## 測試法（背景分頁 Canvas 測試法）
 

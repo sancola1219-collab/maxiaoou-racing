@@ -67,6 +67,7 @@ const AudioSys = {
       case 'bomb-throw': this._beep(300, 0.2, 'triangle', 0.15, 150); break;
       case 'ink': this._beep(220, 0.35, 'sine', 0.2, 70); break;
       case 'bullet': this._beep(110, 0.9, 'sawtooth', 0.22, 620); break;
+      case 'thunder': this._beep(60, 1.1, 'sawtooth', 0.28, 28); this._beep(90, 0.7, 'triangle', 0.18, 40); break;
       case 'count': this._beep(440, 0.25, 'square', 0.2); break;
       case 'go': this._beep(880, 0.5, 'square', 0.25); break;
       case 'finish':

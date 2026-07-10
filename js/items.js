@@ -24,7 +24,7 @@ const ITEM_USES = { mushroom3: 3, goldmush: 6 };
 
 // 依名次的道具機率表 [道具, 權重]
 const ITEM_TABLES = [
-  /* 第1名 */[['coin', 24], ['banana', 24], ['fakebox', 14], ['green', 22], ['ink', 8], ['mushroom', 8]],
+  /* 第1名 */[['coin', 24], ['banana', 24], ['fakebox', 14], ['green', 26], ['mushroom', 12]],
   /* 2-3 */  [['green', 18], ['red', 18], ['banana', 12], ['fakebox', 8], ['mushroom', 14], ['mushroom3', 10], ['ink', 8], ['coin', 8], ['bomb', 4]],
   /* 4-5 */  [['red', 16], ['mushroom3', 14], ['mushroom', 10], ['goldmush', 10], ['bomb', 12], ['star', 8], ['lightning', 8], ['ink', 8], ['green', 6], ['blue', 8]],
   /* 6-8 */  [['mushroom3', 14], ['goldmush', 15], ['star', 13], ['lightning', 11], ['blue', 12], ['bullet', 14], ['bomb', 8], ['red', 8], ['ink', 5]],
@@ -118,7 +118,8 @@ class ItemWorld {
 
   useItem(kart) {
     const item = kart.item;
-    if (!item) return;
+    // 火箭衝刺期間鎖道具（玩家與 AI 都擋，道具保留、衝刺結束後才能用）
+    if (!item || kart.bulletTimer > 0) return;
     // 多次使用的道具（三重蘑菇/黃金蘑菇）用完才清空
     kart.itemUses = (kart.itemUses || 1) - 1;
     if (kart.itemUses <= 0) { kart.item = null; kart.itemUses = 0; }
@@ -172,11 +173,12 @@ class ItemWorld {
       case 'lightning':
         for (const other of this.karts) {
           if (other === kart || other.finished) continue;
-          if (other.starTimer > 0) continue;
+          if (other.starTimer > 0 || other.bulletTimer > 0) continue; // 星星/火箭免疫
           if (other.spinOut()) other.shrinkTimer = 4.5;
           else other.shrinkTimer = Math.max(other.shrinkTimer, 2);
         }
         AudioSys.play('lightning');
+        if (this.onLightning) this.onLightning(); // 全螢幕閃白特效
         break;
       case 'banana': {
         const behind = kart.pos.clone().addScaledVector(kart.forward(), -2.6);
@@ -259,9 +261,11 @@ class ItemWorld {
       const myPos = sorted.indexOf(kart);
       if (myPos > 0) target = sorted[myPos - 1];
     } else if (type === 'blue') {
-      // 直奔第 1 名
-      target = this.karts.find(k => k.rank === 1) || null;
-      if (target === kart) target = null;
+      // 直奔進行中的第 1 名（排除自己與已完賽者；不能只挑 rank===1，因完賽車永遠排最前）
+      for (const k of this.karts) {
+        if (k === kart || k.finished) continue;
+        if (!target || k.progress() > target.progress()) target = k;
+      }
     }
     const speed = type === 'bomb' ? Math.max(34, kart.speed + 12) : type === 'blue' ? 66 : Math.max(52, kart.speed + 22);
     this.shells.push({
@@ -279,8 +283,10 @@ class ItemWorld {
   }
 
   // 爆炸：範圍內的車全部旋轉，並清掉範圍內的地面道具
-  _explode(pos, radius) {
+  // owner+grace：剛丟出的人在保護時間內免傷（防止撞牆早爆自炸）
+  _explode(pos, radius, owner, grace) {
     for (const kart of this.karts) {
+      if (kart === owner && grace > 0) continue;
       const dx = kart.pos.x - pos.x, dz = kart.pos.z - pos.z;
       if (dx * dx + dz * dz < radius * radius && Math.abs(kart.pos.y - pos.y) < 5) kart.spinOut();
     }
@@ -297,6 +303,12 @@ class ItemWorld {
     boom.position.copy(pos);
     this.scene.add(boom);
     this.explosions.push({ mesh: boom, t: 0, radius });
+    // 爆裂粒子：橘火 + 黃白核心 + 灰煙
+    if (this.fx) {
+      this.fx.burst(pos, 22, 0xff7a1a, 30, 0.7, 11);
+      this.fx.burst(pos, 12, 0xffe066, 20, 0.5, 6);
+      this.fx.burst(pos, 10, 0x888888, 10, 0.9, -1);
+    }
     AudioSys.play('bomb');
   }
 
@@ -369,7 +381,8 @@ class ItemWorld {
       sh.life -= dt;
       sh.ownerGrace -= dt;
       if (sh.life <= 0) {
-        if (sh.type === 'bomb') this._explode(sh.pos.clone(), 6); // 引信燒完
+        // 炸彈引信燒完 / 藍殼逾時 → 就地爆炸（不再無聲消失）
+        if (sh.type === 'bomb' || sh.type === 'blue') this._explode(sh.pos.clone(), sh.type === 'bomb' ? 6 : 5, sh.owner, sh.ownerGrace);
         this._removeShell(i);
         continue;
       }
@@ -392,7 +405,7 @@ class ItemWorld {
         toTarget.y = 0;
         const d2 = toTarget.lengthSq();
         if (d2 < 3.5 * 3.5) {
-          this._explode(sh.target.pos.clone(), 5);
+          this._explode(sh.target.pos.clone(), 5, sh.owner, sh.ownerGrace);
           this._removeShell(i);
           continue;
         }
@@ -415,7 +428,7 @@ class ItemWorld {
       const th = track.theme;
       if (sh.type !== 'blue' && Math.abs(lat) > track.halfW + 0.6) {
         if (sh.type === 'bomb') {
-          this._explode(sh.pos.clone(), 6);
+          this._explode(sh.pos.clone(), 6, sh.owner, sh.ownerGrace);
           this._removeShell(i);
           continue;
         }
@@ -439,10 +452,11 @@ class ItemWorld {
       let removed = false;
       for (const kart of this.karts) {
         if (kart === sh.owner && sh.ownerGrace > 0) continue;
-        if (sh.type === 'blue' && kart !== sh.target) continue;
+        // 藍殼只理會現有目標；目標消失/完賽時退回一般接觸引爆
+        if (sh.type === 'blue' && sh.target && !sh.target.finished && kart !== sh.target) continue;
         if (kart.pos.distanceToSquared(sh.pos) < 1.9 * 1.9) {
           if (sh.type === 'bomb' || sh.type === 'blue') {
-            this._explode(sh.pos.clone(), sh.type === 'bomb' ? 6 : 5);
+            this._explode(sh.pos.clone(), sh.type === 'bomb' ? 6 : 5, sh.owner, sh.ownerGrace);
           } else {
             kart.spinOut();
           }
@@ -458,7 +472,7 @@ class ItemWorld {
         if (this.hazards[j].pos.distanceToSquared(sh.pos) < 1.5 * 1.5) {
           this.scene.remove(this.hazards[j].mesh);
           this.hazards.splice(j, 1);
-          if (sh.type === 'bomb') this._explode(sh.pos.clone(), 6);
+          if (sh.type === 'bomb') this._explode(sh.pos.clone(), 6, sh.owner, sh.ownerGrace);
           this._removeShell(i);
           break;
         }

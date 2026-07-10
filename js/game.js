@@ -126,8 +126,21 @@ const Game = {
 
     const items = new ItemWorld(track, karts, this.scene, { items: this.mode !== 'tt' });
     const hazards = new HazardWorld(track, karts, this.scene);
+
+    // 天氣：從主題天氣池隨機挑一種（GameTest 可用 Game.forcedWeather 指定）
+    const weatherType = pickWeather(th, this.forcedWeather);
+    const weather = new Weather(this.scene, weatherType);
+    weather.onFlash = (intensity, color) => UI.flashScreen(intensity, color);
+    items.onLightning = () => UI.flashScreen(0.85, '#fff9d0');
+
+    // 燈光受天氣調暗
+    if (weather.info.darken) hemi.intensity *= weather.info.darken;
+
+    const fx = new EffectsWorld(this.scene);
+    items.fx = fx; // 讓爆炸/道具能生成粒子
+
     this.world = {
-      track, karts, player, items, hazards,
+      track, karts, player, items, hazards, weather, fx,
       raceTime: 0,
       phase: 'countdown',
       onLap: (lap) => {
@@ -143,7 +156,8 @@ const Game = {
     UI.show(null);
     UI.setRacing(true);
     UI.setTrackMinimap(track);
-    UI.announce(track.def.name, 2200);
+    const wInfo = weather.info;
+    UI.announce(track.def.name + (weatherType !== 'clear' ? '　' + wInfo.icon + wInfo.name : ''), 2200);
     AudioSys.init();
     AudioSys.stopBgm();
     AudioSys.startBgm(th.night);
@@ -218,6 +232,7 @@ const Game = {
     }
     for (const kart of this.world.karts) kart.syncMesh();
     this.updateCamera(dt, false);
+    this.world.weather.update(dt, this.camera.position);
     UI.updateHud(this.world.player, this.world.karts, 0, dt);
   },
 
@@ -240,11 +255,9 @@ const Game = {
             kart.itemUses = 1;
           }
         }
-        // 火箭衝刺：自動駕駛
+        // 火箭衝刺：自動駕駛（道具已由 useItem 的 bulletTimer 守衛鎖住）
         if (kart.bulletTimer > 0) {
-          const auto = computeAiInput(kart, world, dt);
-          auto.item = false;
-          input = auto;
+          input = computeAiInput(kart, world, dt);
         }
       } else {
         input = computeAiInput(kart, world, dt);
@@ -282,6 +295,8 @@ const Game = {
     world.hazards.update(dt, world);
     this.updateRanks();
     this.updateCamera(dt, false);
+    world.weather.update(dt, this.camera.position);
+    world.fx.update(dt, world, this.camera);
 
     // 引擎聲
     AudioSys.setEngine(Math.min(1, Math.abs(world.player.speed) / world.player.baseMax));
