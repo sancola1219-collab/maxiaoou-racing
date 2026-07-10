@@ -11,7 +11,7 @@
 
 1. **先讀完本檔**再動手。CLAUDE.md / AGENTS.md 只是入口摘要，細節以本檔為準。
 2. **跑起來**：`npx -y http-server -p 8123 -c-1` 開 http://localhost:8123（或直接雙擊 index.html）。
-3. **改之前先驗證現況**：瀏覽器 console 跑 §測試法 的 GameTest 腳本，確認 16 條賽道能完賽、console 零錯誤 —— 之後你才知道壞掉是不是你改壞的。
+3. **改之前先驗證現況**：瀏覽器 console 跑 §測試法 的 GameTest 腳本，確認 24 條賽道能完賽、console 零錯誤 —— 之後你才知道壞掉是不是你改壞的。
 4. **改動原則**：加內容（賽道/角色/主題/陷阱/裝飾）優先只動 `js/data/tracks.js` 資料層；動邏輯照 §架構 找對檔案，一檔一責不要跨檔亂塞。
 5. **改完必做**：index.html 全部 `?v=N` +1（目前 v=3，共 11 個標籤）→ 重跑測試 → 更新本檔（版本紀錄 + 新踩的雷）→ 紅線有變就三處同步。
 6. **部署**：`git add -A && git commit && git push`（main 分支，push 即自動部署，約 30 秒生效）。
@@ -51,7 +51,7 @@
 | `js/kart.js` | Kart 類：物理（加速/甩尾蓄力噴射/邊界/掉落重生/圈數/打滑）+ 車模；`buildDriver` 是 8 位角色各自的造型（帽子/皇冠/龜殼/恐龍嘴…），`buildKartMesh` 含假陰影 |
 | `js/ai.js` | `computeAiInput`：前瞻導航、彎道減速、甩尾、橡皮筋（±7%~16%）、道具時機、卡住倒車 |
 | `js/items.js` | ItemWorld：道具箱(?貼圖)/金幣/14 種道具（香蕉/龜殼綠紅藍/蘑菇×3種/星星/閃電/炸彈/墨魚/火箭/假箱）；`ITEM_TABLES` 是名次加權抽選表；`ITEM_USES` 是多次使用道具的次數 |
-| `js/hazards.js` | HazardWorld：賽道陷阱。5 種行為（walker 橫越/roller 滾動/geyser 噴發/patch 打滑/car NPC車）× 20 種模型；設定寫在 THEMES[].hazards |
+| `js/hazards.js` | HazardWorld：賽道陷阱。5 種行為（walker 橫越/roller 滾動/geyser 噴發/patch 打滑/car NPC車）× 25 種模型；設定寫在 THEMES[].hazards |
 | `js/audio.js` | AudioSys：WebAudio 全合成（無音檔）；音效/引擎聲/BGM；M 鍵或按鈕靜音（localStorage `msq-muted`） |
 | `js/ui.js` | UI：畫面切換、選單生成（角色/盃賽/賽道卡片）、HUD、小地圖繪製、觸控按鈕 |
 | `js/game.js` | Game：固定步長主迴圈、比賽流程（倒數→比賽→結算）、GP 積分、攝影機、排名、`GameTest` 測試掛鉤 |
