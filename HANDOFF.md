@@ -1,11 +1,38 @@
 # 馬小歐賽車 — 交接文件（唯一正解）
 
-3D 卡丁賽車遊戲（類瑪利歐賽車）。16 條賽道 × 4 盃賽 × 8 車手，含道具、AI 對手、甩尾噴射、金幣系統。
+3D 卡丁賽車遊戲（類瑪利歐賽車）。16 條賽道 × 4 盃賽 × 8 車手，含道具、AI 對手、甩尾噴射、金幣、賽道陷阱。
 純前端、Three.js r149 打包在 repo 內（`js/three.min.js`），可離線玩。
 
 - 線上版：https://sancola1219-collab.github.io/maxiaoou-racing/
 - Repo：https://github.com/sancola1219-collab/maxiaoou-racing （push main 自動部署 Pages）
 - 設計文件：`docs/superpowers/specs/2026-07-10-mario-kart-design.md`
+
+## 給接手模型的 SOP（Codex / Claude / 其他都一樣）
+
+1. **先讀完本檔**再動手。CLAUDE.md / AGENTS.md 只是入口摘要，細節以本檔為準。
+2. **跑起來**：`npx -y http-server -p 8123 -c-1` 開 http://localhost:8123（或直接雙擊 index.html）。
+3. **改之前先驗證現況**：瀏覽器 console 跑 §測試法 的 GameTest 腳本，確認 16 條賽道能完賽、console 零錯誤 —— 之後你才知道壞掉是不是你改壞的。
+4. **改動原則**：加內容（賽道/角色/主題/陷阱/裝飾）優先只動 `js/data/tracks.js` 資料層；動邏輯照 §架構 找對檔案，一檔一責不要跨檔亂塞。
+5. **改完必做**：index.html 全部 `?v=N` +1（目前 v=2，共 11 個標籤）→ 重跑測試 → 更新本檔（版本紀錄 + 新踩的雷）→ 紅線有變就三處同步。
+6. **部署**：`git add -A && git commit && git push`（main 分支，push 即自動部署，約 30 秒生效）。
+   - git 身分已設在 repo 本機 config（sancola1219-collab / sancola1220@gmail.com），不用重設
+   - 這台 Windows 的 gh 不在 PATH，要用全路徑：`"C:\Program Files\GitHub CLI\gh.exe"`
+   - Pages 已啟用（main 分支根目錄），不用再設定
+7. **驗證上線**：`Invoke-WebRequest https://sancola1219-collab.github.io/maxiaoou-racing/js/game.js?v=<新版號>` 回 200 才算部署完成。
+
+## 版本紀錄
+
+| 版本 | 日期 | 內容 |
+|---|---|---|
+| v1 | 2026-07-10 | 初版：16 賽道×4盃賽×8車手、盃賽/單場/計時三模式、7 種道具、AI+橡皮筋、甩尾噴射、金幣、觸控、WebAudio 合成音效。當日修復 AI 甩尾鎖死事故（見紅線 3） |
+| v2 | 2026-07-10 | 8 位角色專屬造型（帽/鬍/皇冠/龜殼/恐龍嘴…全員有眼睛）、車體細化+假陰影、場景豐富化（每主題 3~4 種擺設+地標+山脈+雲+氣球）、新增 hazards.js 陷阱系統（5 行為×20 模型）、角色選單 3D 縮圖、道具箱?貼圖 |
+
+## 待辦池（使用者沒點頭前不要自作主張做大的）
+
+- 手機直排版面再調（觸控按鈕位置）
+- 多人同樂（分割畫面或連線）——大工程，要先問
+- 更多賽道/盃賽（資料層就能加）
+- 幽靈車重播（計時模式存軌跡）
 
 ## 紅線（改一處要同步 CLAUDE.md / AGENTS.md / 本檔）
 
