@@ -192,10 +192,11 @@ const Game = {
   playerInput() {
     if (this.testInput) return this.testInput;
     const k = this.keys, t = UI.touchState;
+    const keySteer = ((k.ArrowLeft || k.KeyA) ? 1 : 0) - ((k.ArrowRight || k.KeyD) ? 1 : 0);
     return {
       accel: !!(k.ArrowUp || k.KeyW || t.accel),
-      brake: !!(k.ArrowDown || k.KeyS),
-      steer: ((k.ArrowLeft || k.KeyA || t.left) ? 1 : 0) - ((k.ArrowRight || k.KeyD || t.right) ? 1 : 0),
+      brake: !!(k.ArrowDown || k.KeyS || t.brake),
+      steer: Math.max(-1, Math.min(1, keySteer + (t.steer || 0))), // 搖桿是類比值
       drift: !!(k.ShiftLeft || k.ShiftRight || k.Space || t.drift),
       item: !!(k.ControlLeft || k.ControlRight || k.KeyE || k.Enter || t.item),
     };

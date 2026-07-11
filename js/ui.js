@@ -5,7 +5,7 @@
 const UI = {
   handlers: {},
   selection: { charId: 'mario', cupId: null, trackId: null, mode: null },
-  touchState: { left: false, right: false, accel: false, drift: false, item: false },
+  touchState: { steer: 0, accel: false, brake: false, drift: false, item: false },
   _announceTimer: null,
   _itemRollTimer: 0,
 
@@ -233,6 +233,8 @@ const UI = {
     } else {
       this._setHtml('hud-item', '');
     }
+    // 觸控道具鍵同步顯示目前道具
+    this._setText('tb-item', player.item && player.itemRoll <= 0 ? ITEM_INFO[player.item].icon : '🎁');
 
     // 墨漬跟著模擬時間走（暫停凍結、恢復繼續）；inkTimer 歸零就淡掉
     if (this._inkShown !== (player.inkTimer > 0)) {
@@ -358,11 +360,75 @@ const UI = {
       el.addEventListener('pointerup', off);
       el.addEventListener('pointerleave', off);
     };
-    bind('tb-left', 'left');
-    bind('tb-right', 'right');
-    bind('tb-accel', 'accel');
     bind('tb-drift', 'drift');
     bind('tb-item', 'item');
+    this._initJoystick();
+  },
+
+  // 左手圓形搖桿：推上=前進、拉下=煞車、左右=類比轉向（heading 增加=左轉 → 推左 steer 為正）
+  _initJoystick() {
+    const base = this.$('joy-base');
+    const knob = this.$('joy-knob');
+    const st = this.touchState;
+    let touchId = null; // 鎖定啟動搖桿的那根手指，右手按鍵不干擾
+
+    const apply = (clientX, clientY) => {
+      const rect = base.getBoundingClientRect();
+      const maxR = rect.width / 2 - 12; // 蘑菇頭可推到的半徑
+      let dx = clientX - (rect.left + rect.width / 2);
+      let dy = clientY - (rect.top + rect.height / 2);
+      const len = Math.hypot(dx, dy);
+      if (len > maxR) { dx *= maxR / len; dy *= maxR / len; }
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+      const nx = dx / maxR, ny = dy / maxR;
+      // 轉向：10% 死區，推到 85% 即滿舵
+      st.steer = Math.abs(nx) < 0.1 ? 0 : Math.max(-1, Math.min(1, -nx / 0.85));
+      st.accel = ny < -0.22;  // 推上前進
+      st.brake = ny > 0.5;    // 明顯拉下才煞車（斜推轉向不誤觸）
+    };
+    const reset = () => {
+      touchId = null;
+      base.classList.remove('active');
+      knob.style.transform = '';
+      st.steer = 0; st.accel = false; st.brake = false;
+    };
+
+    base.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (touchId !== null) return;
+      const t = e.changedTouches[0];
+      touchId = t.identifier;
+      base.classList.add('active');
+      apply(t.clientX, t.clientY);
+    }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+      if (touchId === null) return;
+      for (const t of e.changedTouches) {
+        if (t.identifier === touchId) { e.preventDefault(); apply(t.clientX, t.clientY); }
+      }
+    }, { passive: false });
+    const touchEnd = (e) => {
+      if (touchId === null) return;
+      for (const t of e.changedTouches) {
+        if (t.identifier === touchId) reset();
+      }
+    };
+    window.addEventListener('touchend', touchEnd);
+    window.addEventListener('touchcancel', touchEnd);
+
+    // 滑鼠/觸控筆備援（桌機測試用）
+    base.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch' || touchId !== null) return;
+      touchId = 'mouse';
+      base.classList.add('active');
+      base.setPointerCapture(e.pointerId);
+      apply(e.clientX, e.clientY);
+    });
+    base.addEventListener('pointermove', (e) => {
+      if (touchId === 'mouse') apply(e.clientX, e.clientY);
+    });
+    base.addEventListener('pointerup', () => { if (touchId === 'mouse') reset(); });
+    base.addEventListener('pointercancel', () => { if (touchId === 'mouse') reset(); });
   },
 };
 

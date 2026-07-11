@@ -198,11 +198,43 @@ html, body {
   color: #fff; font-size: 26px; font-weight: bold;
 }
 .tbtn:active, .tbtn.pressed { background: rgba(255, 213, 79, 0.5); }
-#tb-left  { left: 18px;  bottom: 88px; width: 76px; height: 76px; }
-#tb-right { left: 112px; bottom: 88px; width: 76px; height: 76px; }
-#tb-accel { right: 20px; bottom: 150px; width: 90px; height: 90px; font-size: 20px; }
-#tb-drift { right: 118px; bottom: 84px; width: 72px; height: 72px; font-size: 16px; }
-#tb-item  { right: 24px; bottom: 54px; width: 66px; height: 66px; }
+#tb-drift { right: 128px; bottom: 64px;  width: 80px;  height: 80px;  font-size: 18px; }
+#tb-item  { right: 22px;  bottom: 96px;  width: 104px; height: 104px; font-size: 44px; }
+
+/* 左手圓形搖桿（類 Switch）：推上前進、拉下煞車、左右類比轉向 */
+#joy-base {
+  position: absolute; pointer-events: auto;
+  left: 26px; bottom: 56px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(70,80,110,0.45), rgba(20,24,40,0.55) 72%);
+  border: 3px solid rgba(255,255,255,0.35);
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.5);
+  touch-action: none;
+}
+.joy-hint {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 14px; color: rgba(255,255,255,0.55); pointer-events: none;
+}
+.joy-hint-up { top: 6px; }
+.joy-hint-down { bottom: 6px; }
+#joy-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #6a7590, #39415c 55%, #232a40);
+  border: 3px solid rgba(255,255,255,0.5);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.55), inset 0 -6px 12px rgba(0,0,0,0.35);
+  transition: transform 0.12s ease-out;
+  pointer-events: none;
+}
+#joy-base.active #joy-knob { transition: none; border-color: #ffd54f; }
+
+/* 窄螢幕（直立手機）：縮小避免左右重疊 */
+@media (max-width: 480px) {
+  #joy-base { left: 14px; bottom: 44px; width: 128px; height: 128px; }
+  #joy-knob { width: 66px; height: 66px; margin: -33px 0 0 -33px; }
+  #tb-drift { right: 100px; bottom: 52px; width: 64px; height: 64px; font-size: 15px; }
+  #tb-item  { right: 14px;  bottom: 78px; width: 84px;  height: 84px; font-size: 36px; }
+}
 
 /* ---------- 固定按鈕 ---------- */
 .corner-btn {

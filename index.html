@@ -14,7 +14,7 @@
     <h1>馬小歐賽車</h1>
     <div class="subtitle">🏎️ 24 條賽道 × 6 大盃賽 × 8 位車手 × 14 種道具 × 動態天氣 🏁</div>
     <button class="btn" id="btn-start">開始遊戲</button>
-    <div class="subtitle" style="font-size:14px">鍵盤：方向鍵/WASD 駕駛 ｜ Shift/空白鍵 甩尾 ｜ Ctrl/E 道具</div>
+    <div class="subtitle" style="font-size:14px">鍵盤：方向鍵/WASD 駕駛 ｜ Shift/空白鍵 甩尾 ｜ Ctrl/E 道具<br>手機：左手搖桿（推上前進・拉下煞車）｜ 右手道具/甩尾</div>
   </div>
 
   <!-- 模式選擇 -->
@@ -111,11 +111,13 @@
   <div id="speedlines"></div>
   <div id="flash-overlay"></div>
 
-  <!-- 觸控按鈕 -->
+  <!-- 觸控：左手搖桿（推上前進/拉下煞車/左右轉向）＋右手技能鍵 -->
   <div id="touch-controls" class="hidden">
-    <div class="tbtn" id="tb-left">◀</div>
-    <div class="tbtn" id="tb-right">▶</div>
-    <div class="tbtn" id="tb-accel">加速</div>
+    <div id="joy-base">
+      <div class="joy-hint joy-hint-up">▲</div>
+      <div class="joy-hint joy-hint-down">▼</div>
+      <div id="joy-knob"></div>
+    </div>
     <div class="tbtn" id="tb-drift">甩尾</div>
     <div class="tbtn" id="tb-item">🎁</div>
   </div>
@@ -123,17 +125,17 @@
   <button class="corner-btn" id="pause-btn">⏸</button>
   <button class="corner-btn" id="mute-btn">🔊</button>
 
-  <script src="js/three.min.js?v=4"></script>
-  <script src="js/data/tracks.js?v=4"></script>
-  <script src="js/track.js?v=4"></script>
-  <script src="js/audio.js?v=4"></script>
-  <script src="js/kart.js?v=4"></script>
-  <script src="js/ai.js?v=4"></script>
-  <script src="js/items.js?v=4"></script>
-  <script src="js/hazards.js?v=4"></script>
-  <script src="js/weather.js?v=4"></script>
-  <script src="js/effects.js?v=4"></script>
-  <script src="js/ui.js?v=4"></script>
-  <script src="js/game.js?v=4"></script>
+  <script src="js/three.min.js?v=5"></script>
+  <script src="js/data/tracks.js?v=5"></script>
+  <script src="js/track.js?v=5"></script>
+  <script src="js/audio.js?v=5"></script>
+  <script src="js/kart.js?v=5"></script>
+  <script src="js/ai.js?v=5"></script>
+  <script src="js/items.js?v=5"></script>
+  <script src="js/hazards.js?v=5"></script>
+  <script src="js/weather.js?v=5"></script>
+  <script src="js/effects.js?v=5"></script>
+  <script src="js/ui.js?v=5"></script>
+  <script src="js/game.js?v=5"></script>
 </body>
 </html>
