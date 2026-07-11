@@ -9,8 +9,10 @@ function _kmat(color, emissive, opacity) {
   return m;
 }
 
-// ---------- 車體（共用，配色跟角色）----------
-function buildKartMesh(char) {
+// ---------- 車體（10 種車型，主色跟角色）----------
+// 車頭朝 +z；駕駛透過 driverY 墊高（怪獸卡車/坦克）
+function buildKartMesh(char, kartDef) {
+  kartDef = kartDef || (typeof KARTS !== 'undefined' ? KARTS[0] : { model: 'standard' });
   const g = new THREE.Group();
   const P = (geo, mat, x, y, z) => {
     const m = new THREE.Mesh(geo, mat);
@@ -22,54 +24,227 @@ function buildKartMesh(char) {
   const darkMat = _kmat(0x24242a);
   const greyMat = _kmat(0x8a8a92);
 
-  // 底盤與車身
-  P(new THREE.BoxGeometry(1.35, 0.28, 2.5), bodyMat, 0, 0.5, 0);
-  const nose = P(new THREE.SphereGeometry(0.62, 10, 8), bodyMat, 0, 0.58, 1.15);
-  nose.scale.set(1.05, 0.55, 1.15);
-  // 側翼
-  for (const sx of [-1, 1]) {
-    const pod = P(new THREE.SphereGeometry(0.42, 8, 7), bodyMat, sx * 0.78, 0.52, -0.15);
-    pod.scale.set(0.75, 0.6, 1.9);
-  }
-  // 前保桿 + 前翼
-  P(new THREE.BoxGeometry(1.5, 0.14, 0.5), darkMat, 0, 0.36, 1.72);
-  // 引擎與排氣管
-  P(new THREE.BoxGeometry(1.0, 0.55, 0.6), darkMat, 0, 0.75, -1.15);
-  for (const sx of [-1, 1]) {
-    const pipe = P(new THREE.CylinderGeometry(0.11, 0.15, 0.7, 7), greyMat, sx * 0.32, 1.05, -1.42);
-    pipe.rotation.x = -0.5;
-  }
-  // 座椅
-  P(new THREE.BoxGeometry(0.85, 0.7, 0.18), _kmat(0x3a3a42), 0, 1.05, -0.85);
-  // 方向盤
-  const wheelCol = P(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 5), darkMat, 0, 0.95, 0.42);
-  wheelCol.rotation.x = 0.7;
-  const steer = P(new THREE.TorusGeometry(0.22, 0.05, 6, 12), darkMat, 0, 1.12, 0.32);
-  steer.rotation.x = -0.85;
-
-  // 輪子（含輪框）
-  const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.36, 10);
-  const hubGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.38, 8);
   g.userData.wheels = [];
-  for (const [x, z] of [[-0.92, 0.95], [0.92, 0.95], [-0.92, -0.95], [0.92, -0.95]]) {
+  const addWheel = (x, z, r, w) => {
     const wg = new THREE.Group();
-    const tire = new THREE.Mesh(wheelGeo, darkMat);
-    const hub = new THREE.Mesh(hubGeo, _kmat(0xd8d84a));
-    wg.add(tire); wg.add(hub);
+    wg.add(new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 10), darkMat));
+    wg.add(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.45, r * 0.45, w + 0.02, 8), _kmat(0xd8d84a)));
     wg.rotation.z = Math.PI / 2;
-    wg.position.set(x, 0.42, z);
+    wg.position.set(x, r, z);
     g.add(wg);
     g.userData.wheels.push(wg);
+    return wg;
+  };
+  const steering = (y, z) => {
+    const col = P(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 5), darkMat, 0, y - 0.17, z + 0.1);
+    col.rotation.x = 0.7;
+    const st = P(new THREE.TorusGeometry(0.22, 0.05, 6, 12), darkMat, 0, y, z);
+    st.rotation.x = -0.85;
+  };
+
+  let driverY = 0;
+  let sparkX = 0.92;
+
+  switch (kartDef.model) {
+    case 'rocket': {
+      // 平躺的火箭：圓筒身 + 錐頭 + 尾翼 + 大噴嘴
+      const tube = P(new THREE.CylinderGeometry(0.58, 0.62, 2.4, 12), bodyMat, 0, 0.7, -0.1);
+      tube.rotation.x = Math.PI / 2;
+      const nose = P(new THREE.ConeGeometry(0.58, 1.0, 12), _kmat(0xd63b3b), 0, 0.7, 1.6);
+      nose.rotation.x = Math.PI / 2;
+      const nozzle = P(new THREE.CylinderGeometry(0.42, 0.6, 0.5, 10), greyMat, 0, 0.7, -1.5);
+      nozzle.rotation.x = Math.PI / 2;
+      P(new THREE.SphereGeometry(0.28, 8, 6), _kmat(0xffa03d, 0xff6a1a), 0, 0.7, -1.75);
+      for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+        const fin = P(new THREE.BoxGeometry(0.1, 0.7, 0.6), _kmat(0xd63b3b), Math.sin(a) * 0.62, 0.7 + Math.cos(a) * 0.62, -1.0);
+        fin.rotation.z = -a;
+      }
+      // 駕駛艙開口
+      P(new THREE.BoxGeometry(0.85, 0.3, 1.0), darkMat, 0, 1.05, -0.4);
+      addWheel(-0.85, 0.9, 0.36, 0.3); addWheel(0.85, 0.9, 0.36, 0.3);
+      addWheel(-0.85, -0.9, 0.36, 0.3); addWheel(0.85, -0.9, 0.36, 0.3);
+      driverY = 0.35;
+      break;
+    }
+    case 'formula': {
+      // F1：低扁流線身 + 尖鼻 + 前後定風翼 + 外露大輪
+      P(new THREE.BoxGeometry(0.75, 0.4, 2.6), bodyMat, 0, 0.55, 0);
+      const nose = P(new THREE.BoxGeometry(0.4, 0.28, 1.0), bodyMat, 0, 0.5, 1.7);
+      nose.scale.z = 1.1;
+      P(new THREE.BoxGeometry(1.9, 0.08, 0.45), _kmat(0xf2f2f2), 0, 0.35, 2.1);      // 前翼
+      for (const sx of [-1, 1]) P(new THREE.BoxGeometry(0.08, 0.5, 0.4), greyMat, sx * 0.5, 1.0, -1.35);
+      P(new THREE.BoxGeometry(1.7, 0.1, 0.55), _kmat(0xf2f2f2), 0, 1.28, -1.4);      // 尾翼
+      P(new THREE.SphereGeometry(0.4, 8, 6), darkMat, 0, 0.82, 0.35).scale.set(0.9, 0.5, 1.6); // 座艙前緣
+      addWheel(-0.95, 1.15, 0.42, 0.4); addWheel(0.95, 1.15, 0.42, 0.4);
+      addWheel(-0.95, -1.05, 0.5, 0.45); addWheel(0.95, -1.05, 0.5, 0.45);
+      break;
+    }
+    case 'beetle': {
+      // 圓滾滾金龜車：大圓頂 + 圓擋泥板
+      const dome = P(new THREE.SphereGeometry(1.05, 14, 10), bodyMat, 0, 0.85, 0.1);
+      dome.scale.set(0.85, 0.75, 1.25);
+      P(new THREE.SphereGeometry(0.5, 10, 8), _kmat(0xbfe8ff), 0, 1.15, 0.85).scale.set(1.3, 0.6, 0.5); // 擋風玻璃
+      for (const [sx, sz] of [[-0.8, 0.85], [0.8, 0.85], [-0.8, -0.8], [0.8, -0.8]]) {
+        P(new THREE.SphereGeometry(0.32, 8, 6), bodyMat, sx, 0.55, sz).scale.set(0.5, 0.7, 1.1); // 擋泥板
+      }
+      for (const sx of [-1, 1]) P(new THREE.SphereGeometry(0.12, 6, 5), _kmat(0xfff0b0, 0xffe066), sx * 0.4, 0.75, 1.25); // 大燈
+      addWheel(-0.8, 0.85, 0.34, 0.28); addWheel(0.8, 0.85, 0.34, 0.28);
+      addWheel(-0.8, -0.8, 0.34, 0.28); addWheel(0.8, -0.8, 0.34, 0.28);
+      driverY = 0.15;
+      break;
+    }
+    case 'monster': {
+      // 怪獸卡車：高底盤皮卡 + 巨輪 + 避震柱
+      P(new THREE.BoxGeometry(1.5, 0.5, 2.6), bodyMat, 0, 1.15, 0);
+      P(new THREE.BoxGeometry(1.3, 0.5, 1.0), bodyMat, 0, 1.6, 0.35);       // 車頭艙
+      P(new THREE.BoxGeometry(1.1, 0.35, 0.08), _kmat(0xbfe8ff), 0, 1.68, 0.86); // 擋風玻璃
+      P(new THREE.BoxGeometry(1.55, 0.12, 0.5), darkMat, 0, 0.95, 1.35);    // 前保桿
+      for (const [sx, sz] of [[-0.8, 0.95], [0.8, 0.95], [-0.8, -0.95], [0.8, -0.95]]) {
+        const strut = P(new THREE.CylinderGeometry(0.07, 0.07, 0.7, 5), greyMat, sx, 0.85, sz);
+        strut.rotation.z = sx * 0.3;
+      }
+      addWheel(-1.0, 0.95, 0.68, 0.5); addWheel(1.0, 0.95, 0.68, 0.5);
+      addWheel(-1.0, -0.95, 0.68, 0.5); addWheel(1.0, -0.95, 0.68, 0.5);
+      driverY = 0.75;
+      sparkX = 1.0;
+      break;
+    }
+    case 'bike': {
+      // 摩托車：細長車身 + 前後兩輪 + 把手
+      P(new THREE.BoxGeometry(0.45, 0.4, 1.9), bodyMat, 0, 0.72, 0);
+      P(new THREE.SphereGeometry(0.35, 8, 6), bodyMat, 0, 0.85, 0.75).scale.set(1, 0.8, 1.4); // 油箱
+      const windshield = P(new THREE.BoxGeometry(0.4, 0.4, 0.06), _kmat(0xbfe8ff), 0, 1.25, 1.05);
+      windshield.rotation.x = -0.3;
+      const bar = P(new THREE.CylinderGeometry(0.04, 0.04, 0.8, 5), greyMat, 0, 1.15, 0.95);
+      bar.rotation.z = Math.PI / 2;
+      for (const sx of [-1, 1]) P(new THREE.SphereGeometry(0.07, 5, 4), darkMat, sx * 0.4, 1.15, 0.95);
+      const fork = P(new THREE.CylinderGeometry(0.05, 0.05, 0.75, 5), greyMat, 0, 0.75, 1.15);
+      fork.rotation.x = 0.35;
+      P(new THREE.CylinderGeometry(0.1, 0.13, 0.6, 6), greyMat, 0.18, 0.55, -0.95).rotation.x = -0.4; // 排氣管
+      addWheel(0, 1.15, 0.46, 0.22);
+      addWheel(0, -0.95, 0.46, 0.26);
+      driverY = 0.2;
+      sparkX = 0.45;
+      break;
+    }
+    case 'tank': {
+      // 坦克：寬車體 + 兩側履帶 + 短砲管
+      P(new THREE.BoxGeometry(1.4, 0.55, 2.5), bodyMat, 0, 0.75, 0);
+      P(new THREE.BoxGeometry(1.0, 0.35, 1.2), bodyMat, 0, 1.2, -0.2); // 砲塔
+      const barrel = P(new THREE.CylinderGeometry(0.09, 0.11, 1.1, 7), greyMat, 0, 1.28, 0.8);
+      barrel.rotation.x = Math.PI / 2 - 0.08;
+      P(new THREE.SphereGeometry(0.12, 6, 5), darkMat, 0, 1.28, 1.35);
+      for (const sx of [-1, 1]) {
+        const tread = P(new THREE.BoxGeometry(0.45, 0.55, 2.7), darkMat, sx * 0.88, 0.45, 0);
+        tread.scale.y = 0.9;
+        for (let k = 0; k < 4; k++) {
+          P(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 7), greyMat, sx * 0.88, 0.28, -1 + k * 0.66).rotation.z = Math.PI / 2;
+        }
+      }
+      driverY = 0.45;
+      sparkX = 0.88;
+      break;
+    }
+    case 'cloud': {
+      // 雲朵車：一團白雲 + 角色色彩帶（無輪，漂浮）
+      const cloudMat = _kmat(0xf8fbff);
+      const body = new THREE.Group();
+      const CP = (r, x, y, z) => {
+        const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), cloudMat);
+        m.position.set(x, y, z);
+        body.add(m);
+        return m;
+      };
+      CP(0.85, 0, 0.6, 0.2).scale.y = 0.75;
+      CP(0.6, 0.7, 0.55, -0.5); CP(0.6, -0.7, 0.55, -0.5);
+      CP(0.55, 0, 0.5, 1.1); CP(0.5, 0.55, 0.5, 0.9); CP(0.5, -0.55, 0.5, 0.9);
+      CP(0.55, 0, 0.65, -1.1);
+      // 角色色彩帶
+      const ribbon = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.09, 6, 16), bodyMat);
+      ribbon.rotation.x = Math.PI / 2;
+      ribbon.position.y = 0.55;
+      body.add(ribbon);
+      g.add(body);
+      g.userData.floatGroup = body;
+      driverY = 0.3;
+      sparkX = 0.7;
+      break;
+    }
+    case 'donut': {
+      // 甜甜圈：平放的大甜甜圈 + 粉紅糖霜 + 彩色碎糖
+      const base = P(new THREE.TorusGeometry(1.0, 0.42, 10, 18), _kmat(0xc98d4a), 0, 0.62, 0);
+      base.rotation.x = Math.PI / 2;
+      const icing = P(new THREE.TorusGeometry(1.0, 0.36, 10, 18), _kmat(0xff8adf), 0, 0.74, 0);
+      icing.rotation.x = Math.PI / 2;
+      icing.scale.z = 0.7;
+      const sprinkleCols = [0xffe066, 0x5fd0ff, 0x8aff5f, 0xffffff, char.body];
+      for (let k = 0; k < 10; k++) {
+        const a = k * Math.PI * 2 / 10 + 0.3;
+        const spr = P(new THREE.BoxGeometry(0.16, 0.05, 0.06), _kmat(sprinkleCols[k % 5]), Math.cos(a) * 1.0, 0.95, Math.sin(a) * 1.0);
+        spr.rotation.y = a + 0.8;
+      }
+      addWheel(-0.75, 0.8, 0.3, 0.26); addWheel(0.75, 0.8, 0.3, 0.26);
+      addWheel(-0.75, -0.8, 0.3, 0.26); addWheel(0.75, -0.8, 0.3, 0.26);
+      driverY = 0.1;
+      break;
+    }
+    case 'ufo': {
+      // 幽浮：金屬飛碟 + 角色色圓頂 + 環繞燈（無輪，漂浮）
+      const body = new THREE.Group();
+      const saucer = new THREE.Mesh(new THREE.SphereGeometry(1.35, 16, 10), greyMat);
+      saucer.scale.set(1, 0.28, 1);
+      saucer.position.y = 0.55;
+      body.add(saucer);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.14, 8, 20), _kmat(0x6a7a95));
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 0.55;
+      body.add(rim);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), bodyMat);
+      dome.position.set(0, 0.68, 0.55);
+      body.add(dome);
+      for (let k = 0; k < 8; k++) {
+        const a = k * Math.PI * 2 / 8;
+        const light = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), _kmat(0x8affff, 0x2ae8d8));
+        light.position.set(Math.cos(a) * 1.05, 0.55, Math.sin(a) * 1.05);
+        body.add(light);
+      }
+      g.add(body);
+      g.userData.floatGroup = body;
+      driverY = 0.35;
+      sparkX = 0.8;
+      break;
+    }
+    default: { // standard 標準卡丁（原版）
+      P(new THREE.BoxGeometry(1.35, 0.28, 2.5), bodyMat, 0, 0.5, 0);
+      const nose = P(new THREE.SphereGeometry(0.62, 10, 8), bodyMat, 0, 0.58, 1.15);
+      nose.scale.set(1.05, 0.55, 1.15);
+      for (const sx of [-1, 1]) {
+        const pod = P(new THREE.SphereGeometry(0.42, 8, 7), bodyMat, sx * 0.78, 0.52, -0.15);
+        pod.scale.set(0.75, 0.6, 1.9);
+      }
+      P(new THREE.BoxGeometry(1.5, 0.14, 0.5), darkMat, 0, 0.36, 1.72);
+      P(new THREE.BoxGeometry(1.0, 0.55, 0.6), darkMat, 0, 0.75, -1.15);
+      for (const sx of [-1, 1]) {
+        const pipe = P(new THREE.CylinderGeometry(0.11, 0.15, 0.7, 7), greyMat, sx * 0.32, 1.05, -1.42);
+        pipe.rotation.x = -0.5;
+      }
+      P(new THREE.BoxGeometry(0.85, 0.7, 0.18), _kmat(0x3a3a42), 0, 1.05, -0.85);
+      steering(1.12, 0.32);
+      addWheel(-0.92, 0.95, 0.42, 0.36); addWheel(0.92, 0.95, 0.42, 0.36);
+      addWheel(-0.92, -0.95, 0.42, 0.36); addWheel(0.92, -0.95, 0.42, 0.36);
+      break;
+    }
   }
 
-  // 駕駛（每位角色不同造型）
+  // 駕駛（每位角色不同造型；高底盤車墊高）
   const driver = buildDriver(char);
+  driver.position.y = driverY;
   g.add(driver);
 
   // 甩尾火花
   const sparkMat = new THREE.MeshBasicMaterial({ color: 0x55aaff });
   g.userData.sparks = [];
-  for (const x of [-0.92, 0.92]) {
+  for (const x of [-sparkX, sparkX]) {
     const spark = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 5), sparkMat);
     spark.position.set(x, 0.25, -1.2);
     spark.visible = false;
@@ -87,7 +262,6 @@ function buildKartMesh(char) {
   g.add(shadow);
   g.userData.shadow = shadow;
 
-  g.userData.tintables = [nose];
   g.userData.bodyMat = bodyMat;
   return g;
 }
@@ -319,15 +493,27 @@ function buildDriver(char) {
   return d;
 }
 
+// 角色 + 車種 → 最終能力值（夾在 1~6）
+function combineStats(char, kartDef) {
+  const st = {};
+  for (const k of ['speed', 'accel', 'handling', 'weight']) {
+    st[k] = Math.max(1, Math.min(6, char.stats[k] + ((kartDef.stats && kartDef.stats[k]) || 0)));
+  }
+  return st;
+}
+
 class Kart {
-  constructor(char, track, index, isPlayer) {
+  constructor(char, track, index, isPlayer, kartDef) {
     this.char = char;
+    this.kartDef = kartDef || (typeof KARTS !== 'undefined' ? KARTS[0] : { model: 'standard', stats: {}, perk: null });
     this.track = track;
     this.index = index;
     this.isPlayer = isPlayer;
-    this.mesh = buildKartMesh(char);
+    this.mesh = buildKartMesh(char, this.kartDef);
+    this.perk = this.kartDef.perk || null;
 
-    const st = char.stats;
+    const st = combineStats(char, this.kartDef);
+    this.effStats = st;
     this.baseMax = 30 + st.speed * 1.15;      // 極速
     this.accelRate = 8 + st.accel * 1.9;       // 加速度
     this.steerRate = 1.55 + st.handling * 0.16; // 轉向速率
@@ -356,7 +542,7 @@ class Kart {
     this.lap = 0;
     this.finished = false;
     this.finishTime = 0;
-    this.coins = 0;
+    this.coins = this.perk === 'coin' ? 3 : 0; // 甜甜圈號：開場自帶金幣
     this.item = null;
     this.itemUses = 0;
     this.itemRoll = 0;
@@ -399,7 +585,7 @@ class Kart {
 
   spinOut() {
     if (this.starTimer > 0 || this.bulletTimer > 0 || this.invulnTimer > 0 || this.spinTimer > 0 || this.boostTimer > 0.8) return false;
-    this.spinTimer = 1.1;
+    this.spinTimer = this.perk === 'armor' ? 0.55 : 1.1; // 坦克：暈眩減半
     this.speed *= 0.35;
     this.coins = Math.max(0, this.coins - 3);
     this.driftDir = 0;
@@ -410,6 +596,7 @@ class Kart {
 
   // 打滑（油漬/泥巴等地面陷阱）：方向亂晃 + 減速
   applySlip() {
+    if (this.perk === 'hover') return; // 雲朵/漂浮車：地面陷阱無效
     if (this.starTimer > 0 || this.bulletTimer > 0 || this.boostTimer > 0.3) return; // 星星/火箭免疫
     if (this.slipTimer <= 0) {
       this.slipPhase = 0;
@@ -475,7 +662,7 @@ class Kart {
         // 甩尾中：轉向被限制在甩尾方向的一個範圍內
         const bias = 0.42 + 0.62 * Math.max(0, steer * this.driftDir);
         turn = this.driftDir * bias * this.steerRate;
-        this.driftCharge += dt * (0.9 + Math.abs(steer) * 0.55);
+        this.driftCharge += dt * (0.9 + Math.abs(steer) * 0.55) * (this.perk === 'drift' ? 1.3 : 1); // 摩托：蓄力+30%
       }
     } else {
       if (this.driftDir !== 0) {
@@ -504,7 +691,11 @@ class Kart {
     let rate = this.accelRate;
     if (!spinning && input.accel) target = this.maxSpeed;
     if (!spinning && input.brake) { target = input.accel ? target * 0.55 : -9; rate = 22; }
-    if (this.offroad && this.boostTimer <= 0 && this.starTimer <= 0) target = Math.min(target, this.baseMax * th.offroad);
+    if (this.offroad && this.boostTimer <= 0 && this.starTimer <= 0) {
+      // 怪獸卡車：越野幾乎不減速
+      const f = this.perk === 'offroad' ? Math.min(0.95, th.offroad * 1.9) : th.offroad;
+      target = Math.min(target, this.baseMax * f);
+    }
     if (this.slipTimer > 0) target = Math.min(target, this.baseMax * 0.72);
     if (this.boostTimer > 0) { target = this.maxSpeed * 1.38; rate = 55; }
     if (this.speed < target) {
@@ -528,7 +719,8 @@ class Kart {
     const groundY = track.heightAt(this.pos, this.sampleIdx);
     this._groundY = groundY;
     if (!this.grounded) {
-      this.vy -= (th.floaty ? 10 : 24) * dt; // 水中浮力：落下飄飄的
+      // 水中浮力落下飄飄的；UFO 滯空久跳更遠
+      this.vy -= (th.floaty ? 10 : 24) * (this.perk === 'glide' ? 0.55 : 1) * dt;
       this.pos.y += this.vy * dt;
       if (this.pos.y <= groundY) { this.pos.y = groundY; this.vy = 0; this.grounded = true; }
     } else {
@@ -596,6 +788,9 @@ class Kart {
     if (dt && this.mesh.userData.wheels) {
       for (const w of this.mesh.userData.wheels) w.rotation.x += this.speed * dt * 2.2;
     }
+    // 漂浮車（雲朵/UFO）上下飄
+    const floatGroup = this.mesh.userData.floatGroup;
+    if (floatGroup) floatGroup.position.y = Math.sin(performance.now() * 0.0035 + this.index) * 0.12 + 0.08;
     // 假陰影貼在地面（跳起時留在原地縮小）
     const shadow = this.mesh.userData.shadow;
     if (shadow) {

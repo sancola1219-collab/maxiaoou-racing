@@ -107,19 +107,22 @@ const Game = {
     dir.position.set(120, 180, 60);
     this.scene.add(dir);
 
-    // 車手：玩家 + 7 台 AI（計時模式只有玩家）
+    // 車手：玩家 + 7 台 AI（計時模式只有玩家）；玩家開選的車、AI 隨機開不同車種
     const playerChar = CHARACTERS.find(c => c.id === charId);
+    const playerKart = getKart(UI.selection.kartId);
     const karts = [];
     if (this.mode === 'tt') {
-      const player = new Kart(playerChar, track, 0, true);
+      const player = new Kart(playerChar, track, 0, true, playerKart);
       karts.push(player);
       this.ttMushrooms = 2;
       karts[0].item = 'mushroom';
       karts[0].itemUses = 1;
     } else {
       const aiChars = CHARACTERS.filter(c => c.id !== charId);
-      for (let i = 0; i < 7; i++) karts.push(new Kart(aiChars[i], track, i, false));
-      karts.push(new Kart(playerChar, track, 7, true)); // 玩家從最後起跑
+      for (let i = 0; i < 7; i++) {
+        karts.push(new Kart(aiChars[i], track, i, false, KARTS[Math.floor(Math.random() * KARTS.length)]));
+      }
+      karts.push(new Kart(playerChar, track, 7, true, playerKart)); // 玩家從最後起跑
     }
     for (const k of karts) this.scene.add(k.mesh);
     const player = karts.find(k => k.isPlayer);

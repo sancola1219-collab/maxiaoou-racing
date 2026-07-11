@@ -4,7 +4,7 @@
 
 const UI = {
   handlers: {},
-  selection: { charId: 'mario', cupId: null, trackId: null, mode: null },
+  selection: { charId: 'mario', kartId: 'standard', cupId: null, trackId: null, mode: null },
   touchState: { steer: 0, accel: false, brake: false, drift: false, item: false },
   _announceTimer: null,
   _itemRollTimer: 0,
@@ -24,12 +24,14 @@ const UI = {
     $('btn-mode-tt').onclick = () => { this.selection.mode = 'tt'; this.show('screen-char'); };
 
     $('btn-char-back').onclick = () => this.show('screen-mode');
-    $('btn-char-ok').onclick = () => {
+    $('btn-char-ok').onclick = () => { this.buildKartSelect(); this.show('screen-kart'); };
+    $('btn-kart-back').onclick = () => this.show('screen-char');
+    $('btn-kart-ok').onclick = () => {
       if (this.selection.mode === 'gp') { this.buildCupSelect(); this.show('screen-cup'); }
       else { this.buildTrackSelect(); this.show('screen-track'); }
     };
-    $('btn-cup-back').onclick = () => this.show('screen-char');
-    $('btn-track-back').onclick = () => this.show('screen-char');
+    $('btn-cup-back').onclick = () => this.show('screen-kart');
+    $('btn-track-back').onclick = () => this.show('screen-kart');
 
     $('btn-resume').onclick = () => handlers.onResume();
     $('btn-restart').onclick = () => handlers.onRestart();
@@ -66,10 +68,12 @@ const UI = {
   },
 
   // ---------- 選單生成 ----------
-  // 用小型 3D 渲染器幫每位角色拍一張縮圖
-  _charThumb(ch) {
+  // 用小型 3D 渲染器拍縮圖（角色×車種各一張，快取）
+  _charThumb(ch, kartDef) {
+    kartDef = kartDef || KARTS[0];
+    const key = ch.id + '|' + kartDef.id;
     if (!this._thumbCache) this._thumbCache = {};
-    if (this._thumbCache[ch.id]) return this._thumbCache[ch.id];
+    if (this._thumbCache[key]) return this._thumbCache[key];
     if (!this._thumbRenderer) {
       this._thumbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       this._thumbRenderer.setSize(150, 120);
@@ -80,20 +84,47 @@ const UI = {
     const dl = new THREE.DirectionalLight(0xffffff, 0.7);
     dl.position.set(2, 4, 3);
     scene.add(dl);
-    const kart = buildKartMesh(ch);
+    const kart = buildKartMesh(ch, kartDef);
     kart.rotation.y = 0.55;
     scene.add(kart);
     const cam = new THREE.PerspectiveCamera(36, 150 / 120, 0.1, 50);
-    cam.position.set(2.4, 2.2, 4.0);
-    cam.lookAt(0, 1.15, 0);
+    cam.position.set(2.6, 2.4, 4.3);
+    cam.lookAt(0, 1.05, 0);
     r.render(scene, cam);
     const url = r.domElement.toDataURL(); // 同一個 task 內同步取圖才拿得到
     scene.traverse(o => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
     });
-    this._thumbCache[ch.id] = url;
+    this._thumbCache[key] = url;
     return url;
+  },
+
+  // 車輛選擇：縮圖用「目前選的角色」開這台車，能力條顯示角色+車的合成值
+  buildKartSelect() {
+    const grid = this.$('kart-grid');
+    grid.innerHTML = '';
+    const ch = CHARACTERS.find(c => c.id === this.selection.charId);
+    const statNames = [['speed', '速度'], ['accel', '加速'], ['handling', '過彎'], ['weight', '重量']];
+    for (const kd of KARTS) {
+      const card = document.createElement('div');
+      card.className = 'card' + (kd.id === this.selection.kartId ? ' selected' : '');
+      const st = combineStats(ch, kd);
+      const bars = statNames.map(([key, label]) => {
+        const delta = (kd.stats && kd.stats[key]) || 0;
+        const cls = delta > 0 ? ' up' : delta < 0 ? ' down' : '';
+        return `<div class="row"><span class="label">${label}</span><span class="bar"><span class="fill${cls}" style="width:${Math.round(st[key] / 6 * 100)}%"></span></span></div>`;
+      }).join('');
+      const perkLine = kd.perkDesc ? `<div class="perk">✨ ${kd.perkDesc}</div>` : `<div class="perk muted">${kd.desc}</div>`;
+      card.innerHTML = `<img class="thumb" src="${this._charThumb(ch, kd)}" alt="${kd.name}">
+        <div class="name">${kd.name}</div>${perkLine}<div class="stat-bars">${bars}</div>`;
+      card.onclick = () => {
+        this.selection.kartId = kd.id;
+        grid.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      };
+      grid.appendChild(card);
+    }
   },
 
   buildCharSelect() {

@@ -15,6 +15,24 @@ const CHARACTERS = [
   { id: 'boo',    name: '幽幽',     body: 0xe8e8f5, cap: 0x9575cd, skin: 0xe8e8f5, stats: { speed: 2, accel: 4, handling: 5, weight: 1 } },
 ];
 
+// 車種：stats 是加在角色能力上的修正值（最終值夾在 1~6）
+// model 對應 kart.js buildKartMesh 的 case；perk 特殊能力在 kart.js 各處實作：
+//   offroad=出賽道幾乎不減速 / drift=甩尾蓄力+30% / armor=暈眩時間減半 /
+//   hover=打滑區無效(車體漂浮) / coin=開場自帶3金幣 / glide=空中重力小跳更遠
+const KARTS = [
+  { id: 'standard', name: '標準卡丁',  model: 'standard', desc: '均衡好上手',        stats: {}, perk: null },
+  { id: 'rocket',   name: '火箭飛彈',  model: 'rocket',   desc: '極速最快但不好控',  stats: { speed: 2, accel: -1, handling: -1 }, perk: null },
+  { id: 'formula',  name: 'F1 方程式', model: 'formula',  desc: '過彎之王',          stats: { speed: 1, handling: 2, accel: -2 }, perk: null },
+  { id: 'beetle',   name: '迷你甲蟲',  model: 'beetle',   desc: '起步超快的小可愛',  stats: { accel: 2, handling: 1, speed: -2 }, perk: null },
+  { id: 'monster',  name: '怪獸卡車',  model: 'monster',  desc: '草地沙地照樣飆',    stats: { speed: 1, weight: 2, handling: -2 }, perk: 'offroad', perkDesc: '越野：出賽道幾乎不減速' },
+  { id: 'bike',     name: '疾風摩托',  model: 'bike',     desc: '甩尾蓄力特別快',    stats: { speed: 1, handling: 1, weight: -2 }, perk: 'drift', perkDesc: '甩尾火花蓄力 +30%' },
+  { id: 'tank',     name: '重裝坦克',  model: 'tank',     desc: '皮粗肉厚撞不怕',    stats: { weight: 3, speed: -1, accel: -1 }, perk: 'armor', perkDesc: '被攻擊的暈眩時間減半' },
+  { id: 'cloud',    name: '雲朵飄飄',  model: 'cloud',    desc: '飄在路上的雲',      stats: { handling: 2, accel: 1, speed: -2 }, perk: 'hover', perkDesc: '漂浮：油漬泥巴完全無效' },
+  { id: 'donut',    name: '甜甜圈號',  model: 'donut',    desc: '甜甜的加分車',      stats: { accel: 1, handling: 1, speed: -1 }, perk: 'coin', perkDesc: '每場開賽自帶 3 金幣' },
+  { id: 'ufo',      name: '幽浮 UFO',  model: 'ufo',      desc: '外星漂浮科技',      stats: { speed: 1, accel: 1, weight: -2 }, perk: 'glide', perkDesc: '滯空久，跳躍飛更遠' },
+];
+function getKart(id) { return KARTS.find(k => k.id === id) || KARTS[0]; }
+
 // 主題參數：sky 天空色 / ground 地面色 / road 路面色 / curb 路緣紅白條 /
 // open=true 出賽道是草地(減速)，false 有護欄 / voidFall=true 出界會掉落虛空 /
 // grip 抓地力(冰面低) / night 夜晚

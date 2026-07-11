@@ -13,7 +13,7 @@
 2. **跑起來**：`npx -y http-server -p 8123 -c-1` 開 http://localhost:8123（或直接雙擊 index.html）。
 3. **改之前先驗證現況**：瀏覽器 console 跑 §測試法 的 GameTest 腳本，確認 24 條賽道能完賽、console 零錯誤 —— 之後你才知道壞掉是不是你改壞的。
 4. **改動原則**：加內容（賽道/角色/主題/陷阱/裝飾）優先只動 `js/data/tracks.js` 資料層；動邏輯照 §架構 找對檔案，一檔一責不要跨檔亂塞。
-5. **改完必做**：index.html 全部 `?v=N` +1（目前 v=3，共 11 個標籤）→ 重跑測試 → 更新本檔（版本紀錄 + 新踩的雷）→ 紅線有變就三處同步。
+5. **改完必做**：index.html 全部 `?v=N` +1（目前 v=6，共 13 個標籤）→ 重跑測試 → 更新本檔（版本紀錄 + 新踩的雷）→ 紅線有變就三處同步。
 6. **部署**：`git add -A && git commit && git push`（main 分支，push 即自動部署，約 30 秒生效）。
    - git 身分已設在 repo 本機 config（sancola1219-collab / sancola1220@gmail.com），不用重設
    - 這台 Windows 的 gh 不在 PATH，要用全路徑：`"C:\Program Files\GitHub CLI\gh.exe"`
@@ -29,6 +29,7 @@
 | v3 | 2026-07-11 | 賽道 16→24（月亮盃🌙 t17-20、王冠盃👑 t21-24）、新主題 4（櫻花/水底 floaty 浮力/鬼宅/太空）+ 對應地標（鳥居/沉船/鬼屋/地球）與陷阱（青蛙/魚/蝙蝠/隕石/花瓣）；道具 7→14：三重蘑菇×3、黃金蘑菇×6（HUD 顯示剩餘次數）、藍龜殼（追第 1 名爆炸）、假道具箱、炸彈（範圍爆炸）、墨魚（前方對手畫面墨漬+AI 亂飄）、火箭衝刺（3.5 秒自駕無敵）；加速時 FOV 65→76 速度感、材質快取 _lam（disposeScene 跳過 cached）、HUD DOM 快取防每幀重排 |
 | v5 | 2026-07-11 | **手機操控改版**：左手圓形類比搖桿（類 Switch 蘑菇頭；推上前進/拉下煞車到倒車/左右類比轉向，10% 死區、85% 推程滿舵），右手道具鍵（同步顯示持有道具圖示）+ 甩尾鍵；移除舊五鍵（◀▶加速甩尾道具）。多指以 touch identifier 鎖定互不干擾；桌機 pointer 事件備援。playerInput 的 steer 改鍵盤+搖桿類比合流（夾 ±1）。≤480px 窄螢幕縮小版面防重疊 |
 | v4 | 2026-07-11 | **先修 v3 的 6+1 個道具/特效 bug**（多代理審查抓出：藍龜殼幽靈殼→改鎖進行中最前車且逾時爆炸、炸彈自炸→_explode 加 owner/grace、第1名 ink 空砲→移出機率表、閃電/打滑漏了火箭免疫、火箭鎖道具死碼→useItem 加 bulletTimer 守衛、墨漬牆鐘脫鉤→改 inkTimer 驅動）。**新增天氣系統** weather.js（雨/雷暴/雪/暴風雪/濃霧/沙塵/火山灰/落櫻/氣泡，每場從 THEME_WEATHER 隨機挑；影響抓地力 gripMul + 霧能見度 + 雷暴閃電）。**特效升級** effects.js 粒子池（噴射火焰/火箭尾焰/甩尾煙/星星彩虹拖尾/爆炸爆裂）+ 速度線 + 閃電閃白 overlay。實測 75fps、24 賽道全過（含強制暴風雪最低抓地力）、無記憶體漏 |
+| v6 | 2026-07-11 | **修手機選單捲不動 bug**：全域 `touch-action:none` 擋掉觸控捲動＋`.screen` 的 flex `justify-content:center` 讓超出的頂部被裁掉捲不到 → touch-action 只留給畫布/搖桿、`.screen` 改 flex-start + 首末子元素 auto margin 置中（直橫向都驗過）。**新增 10 台車種**（`KARTS` 資料在 tracks.js、車模在 kart.js `buildKartMesh` 每型一個 case）：標準卡丁/火箭飛彈/F1方程式/迷你甲蟲/怪獸卡車/疾風摩托/重裝坦克/雲朵飄飄/甜甜圈號/幽浮UFO；能力=角色+車種修正夾 1~6（`combineStats`），6 種 perk：offroad 越野不減速/drift 蓄力+30%/armor 暈眩減半/hover 打滑區無效(漂浮動畫)/coin 開場3金幣/glide 滯空久。選單流程加「選擇車輛」畫面（角色×車種 3D 縮圖、能力條綠升紅降、perk 說明）；AI 隨機開車種。順帶修正 v5 漏調的 CSS 快取標籤 |
 
 ## 待辦池（使用者沒點頭前不要自作主張做大的）
 
@@ -40,7 +41,7 @@
 ## 紅線（改一處要同步 CLAUDE.md / AGENTS.md / 本檔）
 
 1. **不要把 three.js 升到 r150+**。r150 起官方移除了 UMD 版 `three.min.js`，只剩 ES module；本專案用 `<script>` 直接載入（為了 file:// 離線可玩），升級會整個炸掉。真實事故：初建時先查過才選 r149。
-2. **改版必調 `?v=N` 快取號**（index.html 內全部 13 個標籤一起 +1，目前 v=5）。GitHub Pages 快取很兇，之前專案發生過改了 JS 但玩家拿到舊檔。
+2. **改版必調 `?v=N` 快取號**（index.html 內全部 13 個標籤一起 +1，目前 v=6）。GitHub Pages 快取很兇，之前專案發生過改了 JS 但玩家拿到舊檔。
 3. **AI 的狀態機必須有多重退出條件**。真實事故：AI 甩尾原本只靠「彎度 < 0.22 才放開」，在連續彎道永不成立 → AI 方向鎖死繞圈衝出賽道，整場比賽卡在第 1 圈。現在退出條件有四個（彎道結束/太慢/轉向打架/超時 3 秒），改 AI 時不要刪。
 4. **純 vanilla JS 零依賴**（three.min.js 是唯一例外且已本地化）、拒絕照片貼圖（美術全部程序化幾何 + Canvas 貼圖）。
 
@@ -48,9 +49,9 @@
 
 | 檔案 | 職責 |
 |---|---|
-| `js/data/tracks.js` | **資料層**：CHARACTERS(8)、THEMES(20)、TRACKS(24)、CUPS(6)、GP_POINTS。**加賽道/角色/主題改這裡就好** |
+| `js/data/tracks.js` | **資料層**：CHARACTERS(8)、KARTS(10 車種：能力修正+perk)、THEMES(20)、TRACKS(24)、CUPS(6)、GP_POINTS。**加賽道/角色/車種/主題改這裡就好** |
 | `js/track.js` | Track 類：Catmull-Rom 閉合曲線取樣（位置/切線/左向量）→ 路面/路緣/護欄/路基/裝飾/小地圖全部程序化生成；`nearestIdx` / `lateralOffset` / `heightAt` 是物理的基礎查詢 |
-| `js/kart.js` | Kart 類：物理（加速/甩尾蓄力噴射/邊界/掉落重生/圈數/打滑）+ 車模；`buildDriver` 是 8 位角色各自的造型（帽子/皇冠/龜殼/恐龍嘴…），`buildKartMesh` 含假陰影 |
+| `js/kart.js` | Kart 類：物理（加速/甩尾蓄力噴射/邊界/掉落重生/圈數/打滑）+ 6 種車種 perk + 車模；`buildKartMesh(char, kartDef)` 10 種車型各一個 case（含漂浮動畫/假陰影），`buildDriver` 是 8 位角色造型，`combineStats` 角色+車種合成能力（夾 1~6） |
 | `js/ai.js` | `computeAiInput`：前瞻導航、彎道減速、甩尾、橡皮筋（±7%~16%）、道具時機、卡住倒車 |
 | `js/items.js` | ItemWorld：道具箱(?貼圖)/金幣/14 種道具（香蕉/龜殼綠紅藍/蘑菇×3種/星星/閃電/炸彈/墨魚/火箭/假箱）；`ITEM_TABLES` 是名次加權抽選表；`ITEM_USES` 是多次使用道具的次數 |
 | `js/hazards.js` | HazardWorld：賽道陷阱。5 種行為（walker 橫越/roller 滾動/geyser 噴發/patch 打滑/car NPC車）× 25 種模型；設定寫在 THEMES[].hazards |
@@ -75,6 +76,7 @@
 - 裝飾：THEMES 的 `decos` 加 `[類型, 數量]`；新模型在 track.js `buildDecoration` 加 case
 - 地標：THEMES 的 `landmark`；模型在 track.js `buildLandmark`（volcano 放賽道中心、planet/earth 放天上，其餘放路邊）
 - 角色造型都在 kart.js `buildDriver`（每人一個 case；車體/眼睛/手臂是共用件）
+- 車種：tracks.js `KARTS` 加一筆（stats 修正值 + perk）；車模在 kart.js `buildKartMesh` 加 case（記得 `addWheel` 給會轉的輪子、漂浮車設 `userData.floatGroup`）；新 perk 在 kart.js 各處實作（搜尋 `this.perk ===` 看現有 6 個範例）
 - 天氣：weather.js `WEATHER_INFO` 加效果（grip/vis/tint）+ `_build()` 加粒子；tracks.js `THEME_WEATHER` 把它加進某主題的天氣池
 - 道具：items.js `ITEM_INFO` 加 icon + `ITEM_TABLES` 加權重（每列權重要湊整、每個 key 必須在 ITEM_INFO）+ `useItem` 加 case；多次使用道具加進 `ITEM_USES`
 - 特效：effects.js `EffectsWorld.update` 加拖尾，或別的系統呼叫 `world.fx.burst()`
